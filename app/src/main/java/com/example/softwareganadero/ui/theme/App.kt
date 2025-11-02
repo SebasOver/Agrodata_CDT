@@ -42,6 +42,20 @@ fun AgrodataApp() {
                 val name = it.arguments?.getString("name").orEmpty()
                 AdminExportScreen(currentUserName = name)
             }
+            composable("bienvenida_operario") {
+                BienvenidaOperarioScreen(
+                    onBack = {
+                        nav.navigate("welcome") {
+                            popUpTo("welcome") { inclusive = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    onOpcionClick = { opcion ->
+                        // Navega según la opción
+                    }
+                )
+            }
         }
     }
 }

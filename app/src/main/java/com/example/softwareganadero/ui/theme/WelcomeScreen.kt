@@ -113,7 +113,9 @@ fun WelcomeScreen(nav: NavController, onContinue: (String) -> Unit) {
                                     popUpTo("welcome") { inclusive = true }
                                 }
                             } else {
-                                onContinue(user.fullName) // navega a home usando la lambda
+                                nav.navigate("bienvenida_operario") {  // Aquí cambias la ruta
+                                    popUpTo("welcome") { inclusive = true }
+                                }
                             }
                         } else {
                             Toast.makeText(ctx, "Usuario no autorizado", Toast.LENGTH_LONG).show()
