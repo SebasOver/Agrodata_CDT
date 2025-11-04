@@ -44,16 +44,34 @@ fun AgrodataApp() {
             }
             composable("bienvenida_operario") {
                 BienvenidaOperarioScreen(
-                    onBack = {
-                        nav.navigate("welcome") {
-                            popUpTo("welcome") { inclusive = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
+                    onBack = { nav.popBackStack("welcome", inclusive = false) },
                     onOpcionClick = { opcion ->
-                        // Navega según la opción
+                        when (opcion.texto) {
+                            "Corrales" -> nav.navigate("corrales")
+                            "Visitas" -> nav.navigate("visitas")
+                            "Potreros" -> nav.navigate("potreros")
+                        }
                     }
+                )
+            }
+
+            // Destinos que abrirán los botones
+            composable("corrales") {
+                CorralesScreen(
+                    onBack = { nav.popBackStack("bienvenida_operario", inclusive = false) },
+                    onNavigate = { destino -> nav.navigate(destino) }
+                )
+            }
+            composable("visitas") {
+                VisitasScreen(
+                    onBack = { nav.popBackStack("bienvenida_operario", inclusive = false) },
+                    onNavigate = { destino -> nav.navigate(destino) }
+                )
+            }
+            composable("potreros") {
+                PotrerosScreen(
+                    onBack = { nav.popBackStack("bienvenida_operario", inclusive = false) },
+                    onNavigate = { destino -> nav.navigate(destino) }
                 )
             }
         }
