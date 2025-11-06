@@ -51,6 +51,7 @@ import com.example.softwareganadero.data.UserRole
 import com.example.softwareganadero.domain.AuthRepository
 import kotlinx.coroutines.launch
 
+
 @Composable
 fun WelcomeScreen(nav: NavController, onContinue: (String) -> Unit) {
     val logo = painterResource(id = R.drawable.logo_agrodata)
