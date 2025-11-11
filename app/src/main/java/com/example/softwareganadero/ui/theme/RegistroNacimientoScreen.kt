@@ -103,7 +103,6 @@ fun RegistroNacimientosScreen(
                 },
                 actions = {
                     Image(painterResource(R.drawable.logo_blanco), null, Modifier.size(44.dp))
-                    Text("Operario: $currentOperatorName", fontSize = 12.sp, color = Color.Black)
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = Color.White
