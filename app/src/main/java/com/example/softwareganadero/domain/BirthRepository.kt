@@ -7,12 +7,14 @@ class BirthRepository(private val db: AgroDatabase) {
     suspend fun saveBirth(
         cowTag: String,
         calfTag: String,
-        sex: String,     // "M" | "H"
+        sex: String,
         color: String?,
         weight: String?,
         colostrum: Boolean,
         notes: String?,
-        operatorName: String
+        operatorName: String,
+        createdAtText: String,       // string formateado a guardar
+        createdAtMillis: Long        // opcional, para ordenamiento
     ) {
         val rec = BirthRecord(
             cowTag = cowTag,
@@ -23,7 +25,8 @@ class BirthRepository(private val db: AgroDatabase) {
             colostrum = colostrum,
             notes = notes?.trim().orEmpty().ifEmpty { null },
             operatorName = operatorName,
-            createdAt = System.currentTimeMillis()
+            createdAt = createdAtMillis,      // si mantienes el Long
+            createdAtText = createdAtText     // nuevo campo legible
         )
         db.birthRecordDao().insert(rec)
     }

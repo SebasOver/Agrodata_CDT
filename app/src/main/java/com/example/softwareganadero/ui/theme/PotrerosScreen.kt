@@ -72,6 +72,8 @@ fun PotrerosScreen(
                         contentDescription = "Logo",
                         modifier = Modifier.size(44.dp)
                     )
+
+
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = Color.White,

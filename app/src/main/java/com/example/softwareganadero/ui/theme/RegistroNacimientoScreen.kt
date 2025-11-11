@@ -1,6 +1,8 @@
 package com.example.softwareganadero.ui.theme
 
+import android.os.Build
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -50,11 +52,13 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.softwareganadero.R
 import com.example.softwareganadero.data.AgroDatabase
 import com.example.softwareganadero.domain.BirthRepository
 import kotlinx.coroutines.launch
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegistroNacimientosScreen(
@@ -65,7 +69,11 @@ fun RegistroNacimientosScreen(
     val db: AgroDatabase = remember { AgroDatabase.get(ctx) }
     val birthRepo = remember { BirthRepository(db) }
     val scope = rememberCoroutineScope()
-
+    val nowMillis = remember { System.currentTimeMillis() }
+    val nowText = remember {
+        java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+            .format(java.time.Instant.ofEpochMilli(nowMillis).atZone(java.time.ZoneId.systemDefault()))
+    }
     // Cargar vacas
     var cows by remember { mutableStateOf<List<String>>(emptyList()) }
     LaunchedEffect(Unit) {
@@ -95,6 +103,7 @@ fun RegistroNacimientosScreen(
                 },
                 actions = {
                     Image(painterResource(R.drawable.logo_blanco), null, Modifier.size(44.dp))
+                    Text("Operario: $currentOperatorName", fontSize = 12.sp, color = Color.Black)
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = Color.White
@@ -241,6 +250,12 @@ fun RegistroNacimientosScreen(
                         Toast.makeText(ctx, "Selecciona la vaca e ingresa la cría", Toast.LENGTH_LONG).show()
                         return@Button
                     }
+
+                    val operador = currentOperatorName.trim()
+                    if (operador.isBlank()) {
+                        Toast.makeText(ctx, "Operario no disponible. Selecciónalo en inicio.", Toast.LENGTH_LONG).show()
+                        return@Button
+                    }
                     scope.launch {
                         birthRepo.saveBirth(
                             cowTag = cowTag!!,
@@ -250,7 +265,9 @@ fun RegistroNacimientosScreen(
                             weight = weight,
                             colostrum = colostrum,
                             notes = notes,
-                            operatorName = currentOperatorName
+                            operatorName = currentOperatorName,
+                            createdAtText = nowText,          // NUEVO: string “yyyy-MM-dd HH:mm”
+                            createdAtMillis = nowMillis
                         )
                         Toast.makeText(ctx, "Guardado", Toast.LENGTH_LONG).show()
                         navBack()

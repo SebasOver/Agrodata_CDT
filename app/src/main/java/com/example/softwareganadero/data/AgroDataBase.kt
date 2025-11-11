@@ -11,13 +11,8 @@ import com.example.softwareganadero.dao.BirthRecordDao
 import com.example.softwareganadero.dao.FemaleCowDao
 import com.example.softwareganadero.dao.ProducerDao
 import com.example.softwareganadero.dao.UserDao
-
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-
 @TypeConverters(UserRoleConverter::class) // habilita conversor enum<->TEXT [web:68]
-@Database(entities = [Producer::class, User::class, FemaleCow::class, BirthRecord::class], version = 5, exportSchema = true)
+@Database(entities = [Producer::class, User::class, FemaleCow::class, BirthRecord::class], version = 7, exportSchema = true)
 abstract class AgroDatabase : RoomDatabase() {
     abstract fun producerDao(): ProducerDao
     abstract fun userDao(): UserDao
@@ -81,6 +76,56 @@ abstract class AgroDatabase : RoomDatabase() {
         """.trimIndent())
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_birth_records_cow_tag` ON `birth_records`(`cow_tag`)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_birth_records_operator_name` ON `birth_records`(`operator_name`)")
+            }
+        }
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // 1) Añadir columna NOT NULL con default para no romper filas existentes
+                db.execSQL("ALTER TABLE birth_records ADD COLUMN created_at_text TEXT NOT NULL DEFAULT ''")
+
+                // 2) Poblar el texto legible desde el millis (zona local)
+                db.execSQL(
+                    """
+            UPDATE birth_records
+            SET created_at_text = strftime('%Y-%m-%d %H:%M', created_at/1000, 'unixepoch', 'localtime')
+            WHERE created_at_text = ''
+            """.trimIndent()
+                )
+
+                // 3) Asegurar índices con columnas explícitas
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_birth_records_cow_tag ON birth_records(cow_tag)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_birth_records_operator_name ON birth_records(operator_name)")
+            }
+        }
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("UPDATE birth_records SET operator_name = 'Desconocido' WHERE operator_name IS NULL OR operator_name = ''")
+                // Si necesitas asegurar NOT NULL estricta a nivel schema: recrea tabla
+                db.execSQL("""
+            CREATE TABLE IF NOT EXISTS birth_records_new(
+              id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+              cow_tag TEXT NOT NULL,
+              calf_tag TEXT NOT NULL,
+              sex TEXT NOT NULL,
+              color TEXT,
+              weight TEXT,
+              colostrum INTEGER NOT NULL,
+              notes TEXT,
+              operator_name TEXT NOT NULL,
+              created_at INTEGER NOT NULL,
+              created_at_text TEXT NOT NULL
+            )
+        """.trimIndent())
+                db.execSQL("""
+            INSERT INTO birth_records_new
+            (id,cow_tag,calf_tag,sex,color,weight,colostrum,notes,operator_name,created_at,created_at_text)
+            SELECT id,cow_tag,calf_tag,sex,color,weight,colostrum,notes,operator_name,created_at,created_at_text
+            FROM birth_records
+        """.trimIndent())
+                db.execSQL("DROP TABLE birth_records")
+                db.execSQL("ALTER TABLE birth_records_new RENAME TO birth_records")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_birth_records_cow_tag ON birth_records(cow_tag)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_birth_records_operator_name ON birth_records(operator_name)")
             }
         }
         @Volatile private var INSTANCE: AgroDatabase? = null
@@ -153,7 +198,7 @@ abstract class AgroDatabase : RoomDatabase() {
                         AgroDatabase::class.java,
                         dbName
                     )
-                        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                         .addCallback(object : RoomDatabase.Callback() {
                             override fun onCreate(db: SupportSQLiteDatabase) {
                                 db.execSQL("""

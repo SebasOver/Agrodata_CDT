@@ -17,5 +17,6 @@ data class BirthRecord(
     @ColumnInfo(name = "colostrum") val colostrum: Boolean,     // true/false
     @ColumnInfo(name = "notes") val notes: String?,
     @ColumnInfo(name = "operator_name") val operatorName: String,
-    @ColumnInfo(name = "created_at") val createdAt: Long        // millis
+    @ColumnInfo(name = "created_at") val createdAt: Long,
+    @ColumnInfo(name = "created_at_text") val createdAtText: String // millis
 )

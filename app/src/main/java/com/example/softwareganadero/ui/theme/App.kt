@@ -1,6 +1,8 @@
 package com.example.softwareganadero.ui.theme
 
 import android.net.Uri
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
@@ -19,6 +21,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
+
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AgrodataApp() {
     val systemUi = rememberSystemUiController()
@@ -102,6 +106,7 @@ fun AgrodataApp() {
                     currentOperatorName = operatorName
                 )
             }
+        }
     }
 }
-}
+
