@@ -9,15 +9,20 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.softwareganadero.dao.BirthRecordDao
 import com.example.softwareganadero.dao.FemaleCowDao
+import com.example.softwareganadero.dao.PastureInventoryDAO
+import com.example.softwareganadero.dao.PrecipitationDAO
 import com.example.softwareganadero.dao.ProducerDao
 import com.example.softwareganadero.dao.UserDao
 @TypeConverters(UserRoleConverter::class) // habilita conversor enum<->TEXT [web:68]
-@Database(entities = [Producer::class, User::class, FemaleCow::class, BirthRecord::class], version = 7, exportSchema = true)
-abstract class AgroDatabase : RoomDatabase() {
+@Database(entities = [Producer::class, User::class, FemaleCow::class, BirthRecord::class, Precipitation::class, PastureInventory::class], version = 8, exportSchema = true)
+    abstract class AgroDatabase : RoomDatabase() {
     abstract fun producerDao(): ProducerDao
     abstract fun userDao(): UserDao
     abstract fun femaleCowDao(): FemaleCowDao
     abstract fun birthRecordDao(): BirthRecordDao
+    abstract fun precipitationDao(): PrecipitationDAO
+    abstract fun pastureInventoryDao(): PastureInventoryDAO
+
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -34,7 +39,7 @@ abstract class AgroDatabase : RoomDatabase() {
                 db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_users_full_name` ON `users`(`full_name`)")
             }
         }
-        val MIGRATION_2_3 = object : Migration(2, 3) {
+        val MIGRATION_2_3 = object : Migration( 2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("""
                     INSERT OR IGNORE INTO users (full_name, role, active, created_at) VALUES
@@ -128,6 +133,36 @@ abstract class AgroDatabase : RoomDatabase() {
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_birth_records_operator_name ON birth_records(operator_name)")
             }
         }
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+            CREATE TABLE IF NOT EXISTS precipitations(
+              id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+              amount_mm REAL NOT NULL,
+              operator_name TEXT NOT NULL,
+              created_at INTEGER NOT NULL,
+              created_at_text TEXT NOT NULL
+            )
+        """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_precipitations_operator_name ON precipitations(operator_name)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_precipitations_created_at ON precipitations(created_at)")
+
+                db.execSQL("""
+            CREATE TABLE IF NOT EXISTS pasture_inventories(
+              id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+              healthy INTEGER NOT NULL,
+              sick INTEGER NOT NULL,
+              total INTEGER NOT NULL,
+              operator_name TEXT NOT NULL,
+              created_at INTEGER NOT NULL,
+              created_at_text TEXT NOT NULL
+            )
+        """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_pasture_inventories_operator_name ON pasture_inventories(operator_name)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_pasture_inventories_created_at ON pasture_inventories(created_at)")
+            }
+        }
+
         @Volatile private var INSTANCE: AgroDatabase? = null
         /*fun get(context: Context): AgroDatabase =
             INSTANCE ?: synchronized(this) {
@@ -198,7 +233,7 @@ abstract class AgroDatabase : RoomDatabase() {
                         AgroDatabase::class.java,
                         dbName
                     )
-                        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                         .addCallback(object : RoomDatabase.Callback() {
                             override fun onCreate(db: SupportSQLiteDatabase) {
                                 db.execSQL("""

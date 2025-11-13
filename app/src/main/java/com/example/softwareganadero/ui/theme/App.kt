@@ -69,6 +69,7 @@ fun AgrodataApp() {
                 )
             }
 
+
             // Destinos que abrirán los botones
             composable("corrales") {
                 CorralesScreen(
@@ -94,6 +95,13 @@ fun AgrodataApp() {
                             nav.navigate(destino)
                         }
                     }
+                )
+            }
+            composable("potreros/precipitacion") {
+                val operador = session.operarioActual.orEmpty()
+                PrecipitacionScreen(
+                    navBack = { nav.popBackStack("potreros", inclusive = false) },
+                    currentOperatorName = operador
                 )
             }
             composable(
