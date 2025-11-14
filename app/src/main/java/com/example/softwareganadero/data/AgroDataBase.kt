@@ -26,7 +26,7 @@ import com.example.softwareganadero.dao.WaterEvaluationDao
         Precipitation::class, PastureInventory::class,
         Grazing::class, FenceState::class, HeatDetection::class, PastureEvaluation::class, WaterEvaluation::class,
     ],
-    version = 13, // subir desde 9
+    version = 15, // subir desde 9
     exportSchema = true
 )    abstract class AgroDatabase : RoomDatabase() {
     abstract fun producerDao(): ProducerDao
@@ -271,6 +271,60 @@ import com.example.softwareganadero.dao.WaterEvaluationDao
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_water_evaluations_created_at ON water_evaluations(created_at)")
             }
         }
+        val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE pasture_evaluations ADD COLUMN color_entry TEXT")
+                db.execSQL("ALTER TABLE pasture_evaluations ADD COLUMN color_exit TEXT")
+                // Si venías de una única columna 'color', migrar a color_entry:
+                //db.execSQL("UPDATE pasture_evaluations SET color_entry = color WHERE color_entry IS NULL AND color IS NOT NULL")
+                // (Opcional) luego puedes mantener 'color' o eliminarla recreando la tabla; más simple: déjala sin uso.
+            }
+        }
+        val MIGRATION_14_15 = object : Migration(14, 15) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // 1) Crear tabla nueva con el esquema FINAL (sin 'color', con 'color_entry' y 'color_exit')
+                db.execSQL("""
+            CREATE TABLE IF NOT EXISTS pasture_evaluations_new(
+              id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+              height_entry TEXT,
+              height_exit TEXT,
+              color_entry TEXT,
+              color_exit TEXT,
+              created_at INTEGER NOT NULL,
+              created_at_text TEXT NOT NULL
+            )
+        """.trimIndent())
+
+                // 2) Copiar datos desde la tabla vieja, mapeando 'color' -> 'color_entry' si existía
+                // Si tu tabla vieja tenía 'color', lo llevamos a color_entry; color_exit quedará NULL
+                db.execSQL("""
+            INSERT INTO pasture_evaluations_new
+            (id, height_entry, height_exit, color_entry, color_exit, created_at, created_at_text)
+            SELECT
+              id,
+              height_entry,
+              height_exit,
+              CASE
+                WHEN instr((SELECT group_concat(name) FROM pragma_table_info('pasture_evaluations')), 'color') > 0
+                THEN color
+                ELSE NULL
+              END AS color_entry,
+              NULL AS color_exit,
+              created_at,
+              created_at_text
+            FROM pasture_evaluations
+        """.trimIndent())
+
+                // 3) Borrar la tabla vieja
+                db.execSQL("DROP TABLE pasture_evaluations")
+
+                // 4) Renombrar la nueva a la original
+                db.execSQL("ALTER TABLE pasture_evaluations_new RENAME TO pasture_evaluations")
+
+                // 5) Recrear índices EXACTAMENTE como los espera Room
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_pasture_evaluations_created_at ON pasture_evaluations(created_at)")
+            }
+        }
         @Volatile private var INSTANCE: AgroDatabase? = null
         /*fun get(context: Context): AgroDatabase =
             INSTANCE ?: synchronized(this) {
@@ -341,7 +395,8 @@ import com.example.softwareganadero.dao.WaterEvaluationDao
                         AgroDatabase::class.java,
                         dbName
                     )
-                        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
+                        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
+                            MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15)
                         .addCallback(object : RoomDatabase.Callback() {
                             override fun onCreate(db: SupportSQLiteDatabase) {
                                 db.execSQL("""

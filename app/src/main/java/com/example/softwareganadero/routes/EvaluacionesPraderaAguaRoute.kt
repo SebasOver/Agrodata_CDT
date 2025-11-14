@@ -20,7 +20,12 @@ fun EvaluacionesPraderaAguaRoute(onBack: () -> Unit) {
 
     EvaluacionesPraderaAguaScreen(
         onBack = onBack,
-        onGuardarPradera = { kind, height, color, ts, tsText -> pastureRepo.save(kind, height, color, ts, tsText) },
+        onGuardarPradera = { kind, height, color, ts, tsText ->
+            val c = color?.trim().orEmpty()
+            // si también quieres validar aquí:
+            require(c.isNotEmpty()) { "Selecciona un color" }
+            pastureRepo.save(kind, height, c, ts, tsText)
+        },
         onGuardarAgua = { availability, temp, ts, tsText -> waterRepo.save(availability, temp, ts, tsText) }
     )
 }

@@ -47,38 +47,28 @@ fun BienvenidaOperarioScreen(
     onBack: () -> Unit,
     onOpcionClick: (OpcionBienvenida) -> Unit
 ) {
-    // Asegura status/nav bars blancos
     val sys = rememberSystemUiController()
     LaunchedEffect(Unit) { sys.setSystemBarsColor(color = Color.White, darkIcons = true) }
 
-    // Datos
     val opciones = listOf(
         OpcionBienvenida("Corrales", R.drawable.corral),
         OpcionBienvenida("Visitas", R.drawable.visitas),
-        OpcionBienvenida("Potreros", R.drawable.potreros)
+        OpcionBienvenida("Potreros", R.drawable.potreros),
+        OpcionBienvenida("Cultivos", R.drawable.cultivos) // NUEVO
     )
 
     Scaffold(
         containerColor = Color.White,
         topBar = {
             CenterAlignedTopAppBar(
-                title = {
-                    Text("Bienvenido", fontFamily = Nunito, fontWeight = FontWeight.Bold, fontSize = 24.sp)
-                },
+                title = { Text("Bienvenido", fontFamily = Nunito, fontWeight = FontWeight.Bold, fontSize = 24.sp) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver"
-                        )
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                     }
                 },
                 actions = {
-                    Image(
-                        painter = painterResource(R.drawable.logo_blanco),
-                        contentDescription = "Logo",
-                        modifier = Modifier.size(48.dp)
-                    )
+                    Image(painter = painterResource(R.drawable.logo_blanco), contentDescription = "Logo", modifier = Modifier.size(48.dp))
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = Color.White,
@@ -89,7 +79,6 @@ fun BienvenidaOperarioScreen(
             )
         }
     ) { inner ->
-        // Escalado según ancho de pantalla para aproximar 257.39 x 113 dp
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
@@ -100,7 +89,7 @@ fun BienvenidaOperarioScreen(
             val targetH = 113.dp
             val horizPadding = 16.dp
             val availableW = maxWidth - horizPadding * 2
-            val scale = (availableW / targetW).coerceAtMost(1.35f) // límite superior de crecimiento
+            val scale = (availableW / targetW).coerceAtMost(1.35f)
             val cardW = targetW * scale
             val cardH = targetH * scale
 
@@ -117,14 +106,10 @@ fun BienvenidaOperarioScreen(
                         shape = RoundedCornerShape(20.dp),
                         colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F9FA)),
                         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-                        modifier = Modifier
-                            .width(cardW)
-                            .height(cardH)
+                        modifier = Modifier.width(cardW).height(cardH)
                     ) {
                         Row(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 16.dp),
+                            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
@@ -143,7 +128,7 @@ fun BienvenidaOperarioScreen(
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier
                                     .height(cardH * 0.75f)
-                                    .aspectRatio(1.25f) // más ancha para presencia visual
+                                    .aspectRatio(1.25f)
                                     .clip(RoundedCornerShape(10.dp))
                             )
                         }

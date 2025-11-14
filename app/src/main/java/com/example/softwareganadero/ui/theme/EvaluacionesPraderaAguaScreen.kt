@@ -112,13 +112,18 @@ fun EvaluacionesPraderaAguaScreen(
             Text("Altura")
             TextField(
                 value = height,
-                onValueChange = { height = it },
+                onValueChange = { txt ->
+                    // Acepta entero o decimal con un solo punto
+                    val ok = txt.isEmpty() || txt.matches(Regex("""\d+(\.\d{0,2})?"""))
+                    if (ok) height = txt
+                },
                 modifier = Modifier.fillMaxWidth(),
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = lightBlue,
                     unfocusedContainerColor = lightBlue
                 ),
-                singleLine = true
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
 
             ExposedDropdownMenuBox(
@@ -147,8 +152,14 @@ fun EvaluacionesPraderaAguaScreen(
             Button(
                 onClick = {
                     val h = height.trim()
-                    if (h.isEmpty()) {
-                        Toast.makeText(ctx, "Altura requerida", Toast.LENGTH_LONG).show()
+                    val hNum = h.toDoubleOrNull()
+                    if (h.isEmpty() || hNum == null) {
+                        Toast.makeText(ctx, "Altura numérica requerida", Toast.LENGTH_LONG).show()
+                        return@Button
+                    }
+                    val c = colorSelected?.trim().orEmpty()
+                    if (c.isEmpty()) {
+                        Toast.makeText(ctx, "Selecciona un color", Toast.LENGTH_LONG).show()
                         return@Button
                     }
                     val ts = System.currentTimeMillis()
@@ -156,7 +167,7 @@ fun EvaluacionesPraderaAguaScreen(
                         .format(java.time.Instant.ofEpochMilli(ts).atZone(java.time.ZoneId.systemDefault()))
                     scope.launch {
                         try {
-                            onGuardarPradera(kind, h, colorSelected, ts, tsText)
+                            onGuardarPradera(kind, h, c, ts, tsText)
                             Toast.makeText(ctx, "Pradera guardada", Toast.LENGTH_LONG).show()
                             // Limpieza
                             height = ""

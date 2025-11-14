@@ -2,20 +2,25 @@ package com.example.softwareganadero.ui.theme
 
 import android.net.Uri
 import android.widget.Toast
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
@@ -23,6 +28,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -42,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import com.example.softwareganadero.R
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
 import com.example.softwareganadero.data.AgroDatabase
@@ -53,30 +60,19 @@ import kotlinx.coroutines.launch
 
 
 @Composable
-fun WelcomeScreen(nav: NavController, onContinue: (String) -> Unit) {
+fun WelcomeScreen(
+    options: List<String>,
+    selected: String?,
+    onSelected: (String?) -> Unit,
+    onIngresar: () -> Unit
+) {
     val logo = painterResource(id = R.drawable.logo_agrodata)
-    val ctx = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val db = remember { AgroDatabase.get(ctx) }
-    val auth = remember { AuthRepository(db) }
-
-    // Cargar opciones desde Room
-    var options by rememberSaveable { mutableStateOf<List<String>>(emptyList()) }
-    LaunchedEffect(Unit) {
-        val fromDb = db.userDao().listActive().map { it.fullName }
-        options = if (fromDb.isNotEmpty()) fromDb
-        else listOf("Camilo Rodelo","Jesus Gonzalez","Yaith Salazar","Pedro Maria") // fallback temporal
-    }
-    var selected by rememberSaveable { mutableStateOf<String?>(null) }
-
-    // Fondo sólido tipo “card” centrada y paddings adaptativos
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.primary)
             .systemBarsPadding()
     ) {
-        // Contenido centrado y responsive
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -85,51 +81,64 @@ fun WelcomeScreen(nav: NavController, onContinue: (String) -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(28.dp)
         ) {
-            // Logo escalable
             Image(
                 painter = logo,
                 contentDescription = "Agrodata",
                 modifier = Modifier
                     .sizeIn(minWidth = 120.dp, minHeight = 120.dp)
-                    .size( clampLogoSize() )
+                    .size(clampLogoSize())
                     .clip(CircleShape)
             )
-            // Campo de nombre
-            LaunchedEffect(Unit) {
-                val fromDb = db.userDao().listActive().map { it.fullName }
-                options = if (fromDb.isNotEmpty()) fromDb
-                else listOf("Camilo Rodelo","Jesus Gonzalez","Yaith Salazar","Pedro Maria") // fallback temporal
-            }
-            OperatorDropdown(onSelected = { selected = it }, selected = selected, options = options)
+
+            OperatorDropdown(
+                onSelected = { onSelected(it) },
+                selected = selected,
+                options = options
+            )
 
             Button(
-                onClick = {
-                    val name = selected ?: return@Button
-                    scope.launch {
-                        val user = auth.authenticateByName(name)
-                        if (user != null) {
-                            val encoded = Uri.encode(user.fullName)
-                            if (user.role == UserRole.ADMIN) {
-                                nav.navigate("adminExport/$encoded") {
-                                    popUpTo("welcome") { inclusive = true }
-                                }
-                            } else {
-                                nav.navigate("bienvenida_operario") {  // Aquí cambias la ruta
-                                    popUpTo("welcome") { inclusive = true }
-                                }
-                            }
-                        } else {
-                            Toast.makeText(ctx, "Usuario no autorizado", Toast.LENGTH_LONG).show()
-                        }
-                    }
-                },
+                onClick = onIngresar,
                 enabled = selected != null,
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.White,
-                contentColor = MaterialTheme.colorScheme.primary
-            )
+                    contentColor = MaterialTheme.colorScheme.primary
+                )
             ) { Text("Ingresar") }
+        }
+    }
+}
+
+@Composable
+private fun WelcomeOptionCard(
+    title: String,
+    @DrawableRes imageRes: Int,
+    onClick: () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(24.dp),
+        color = Color(0xFFF2F6FC),
+        tonalElevation = 0.dp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .heightIn(min = 72.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(title, style = MaterialTheme.typography.titleMedium, color = Color.Black)
+            Image(
+                painter = painterResource(imageRes),
+                contentDescription = title,
+                modifier = Modifier
+                    .size(96.dp)
+                    .clip(RoundedCornerShape(16.dp)),
+                contentScale = ContentScale.Crop
+            )
         }
     }
 }

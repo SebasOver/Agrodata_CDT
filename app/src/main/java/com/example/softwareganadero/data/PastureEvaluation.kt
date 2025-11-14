@@ -11,9 +11,10 @@ import androidx.room.PrimaryKey
 )
 data class PastureEvaluation(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    @ColumnInfo(name = "height_entry") val heightEntry: String?,     // altura de “Entrada”
-    @ColumnInfo(name = "height_exit") val heightExit: String?,       // altura de “Salida”
-    @ColumnInfo(name = "color") val color: String?,                  // verde intenso/normal/claro
+    @ColumnInfo(name = "height_entry") val heightEntry: String?,     // Altura entrada
+    @ColumnInfo(name = "height_exit") val heightExit: String?,       // Altura salida
+    @ColumnInfo(name = "color_entry") val colorEntry: String?,       // Color entrada
+    @ColumnInfo(name = "color_exit") val colorExit: String?,         // Color salida
     @ColumnInfo(name = "created_at") val createdAt: Long,
     @ColumnInfo(name = "created_at_text") val createdAtText: String
 )

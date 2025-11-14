@@ -19,9 +19,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.softwareganadero.routes.BienvenidaOperarioRoute
 import com.example.softwareganadero.routes.DeteccionCelosRoute
 import com.example.softwareganadero.routes.EvaluacionesPraderaAguaRoute
 import com.example.softwareganadero.routes.PastoreoYCercasRoute
+import com.example.softwareganadero.routes.WelcomeRoute
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
 
@@ -40,17 +42,8 @@ fun AgrodataApp() {
         background = brandBlue, onBackground = Color.White
     )) {
         val nav = rememberNavController()
-        var operadorActual by rememberSaveable { mutableStateOf<String?>(null) }
         NavHost(navController = nav, startDestination = "welcome") {
-            composable("welcome") {
-                WelcomeScreen(
-                    nav = nav,
-                    onContinue = { name ->
-                        session.setOperario(name)          // guarda el operario logueado
-                        nav.navigate("bienvenida_operario")
-                    }
-                )
-            }
+            composable("welcome") { WelcomeRoute(nav) }
             composable("home/{name}", arguments = listOf(navArgument("name"){ type = NavType.StringType })) {
                 val name = it.arguments?.getString("name").orEmpty()
                 HomePlaceholder(name)
@@ -59,47 +52,18 @@ fun AgrodataApp() {
                 val name = it.arguments?.getString("name").orEmpty()
                 AdminExportScreen(currentUserName = name)
             }
-            composable("bienvenida_operario") {
-                BienvenidaOperarioScreen(
-                    onBack = { nav.popBackStack("welcome", inclusive = false) },
-                    onOpcionClick = { opcion ->
-                        when (opcion.texto) {
-                            "Corrales" -> nav.navigate("corrales")
-                            "Visitas" -> nav.navigate("visitas")
-                            "Potreros" -> nav.navigate("potreros")
-                        }
-                    }
-                )
-            }
+            composable("bienvenida_operario") { BienvenidaOperarioRoute(nav) }
 
 
-            // Destinos que abrirán los botones
-            composable("corrales") {
-                CorralesScreen(
-                    onBack = { nav.popBackStack("bienvenida_operario", inclusive = false) },
-                    onNavigate = { destino -> nav.navigate(destino) }
-                )
-            }
-            composable("visitas") {
-                VisitasScreen(
-                    onBack = { nav.popBackStack("bienvenida_operario", inclusive = false) },
-                    onNavigate = { destino -> nav.navigate(destino) }
-                )
-            }
-            composable("potreros") {
-                // lee el operario actual desde el VM
-                val operador = session.operarioActual.orEmpty()
-                PotrerosScreen(
-                    onBack = { nav.popBackStack("bienvenida_operario", inclusive = false) },
-                    onNavigate = { destino ->
-                        if (destino == "potreros/registro_nacimiento") {
-                            nav.navigate("potreros/registro_nacimiento/${Uri.encode(operador)}")
-                        } else {
-                            nav.navigate(destino)
-                        }
-                    }
-                )
-            }
+            /*
+            composable("corrales") { CorralesRoute(onBack = { nav.popBackStack("bienvenida_operario", false) }) }
+            composable("visitas") { VisitasRoute(onBack = { nav.popBackStack("bienvenida_operario", false) }) }
+            composable("potreros") { PotrerosRoute(onBack = { nav.popBackStack("bienvenida_operario", false) }) }
+
+            // NUEVO: Cultivos
+            composable("cultivos") { CultivosRoute(onBack = { nav.popBackStack("bienvenida_operario", false) }) }
+            */
+
             composable("potreros/precipitacion") {
                 val operador = session.operarioActual.orEmpty()
                 PrecipitacionScreen(

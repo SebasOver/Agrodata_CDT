@@ -6,39 +6,43 @@ import com.example.softwareganadero.data.PastureEvaluation
 class PastureEvaluationRepository(private val db: AgroDatabase) {
     private val dao = db.pastureEvaluationDao()
 
-    // kind: "Entrada" o "Salida"; height es el string del campo; color nullable
-    suspend fun save(kind: String, height: String, color: String?, ts: Long, tsText: String): Long {
+    // kind: "Entrada" o "Salida"; height y color obligatorios en ambos
+    suspend fun save(kind: String, height: String, color: String, ts: Long, tsText: String): Long {
         val h = height.trim()
-        require(h.isNotEmpty()) { "Altura requerida" }
+        val hNum = h.toDoubleOrNull()
+        require(hNum != null) { "Altura numérica requerida" }
+
         val k = kind.trim()
         require(k == "Entrada" || k == "Salida") { "Tipo inválido" }
 
-        if (k == "Salida") {
-            val last = dao.last()
-            val hasEntryBefore = (last?.heightEntry?.isNotEmpty() == true) || (last?.heightExit == null)
-            // Política: permitir salida solo si hay alguna entrada registrada anteriormente.
-            require(hasEntryBefore) { "Para registrar Salida debe existir una Entrada previa" }
-            return dao.insert(
+        val c = color.trim()
+        require(c.isNotEmpty()) { "Selecciona un color" }
+
+        return if (k == "Entrada") {
+            dao.insert(
                 PastureEvaluation(
-                    heightEntry = null,
-                    heightExit = h,
-                    color = color?.trim().orEmpty().ifEmpty { null },
+                    heightEntry = h,
+                    heightExit = null,
+                    colorEntry = c,
+                    colorExit = null,
                     createdAt = ts,
                     createdAtText = tsText
                 )
             )
         } else {
-            return dao.insert(
-                PastureEvaluation(
-                    heightEntry = h,
-                    heightExit = null,
-                    color = color?.trim().orEmpty().ifEmpty { null },
-                    createdAt = ts,
-                    createdAtText = tsText
-                )
+            val pending = dao.lastPendingExit()
+            require(pending != null && pending.heightEntry?.isNotEmpty() == true && pending.heightExit == null) {
+                "Debe existir una Entrada pendiente para registrar la Salida"
+            }
+            val updated = dao.updateExit(
+                id = pending.id,
+                heightExit = h,
+                colorExit = c,
+                updatedAt = ts,
+                updatedAtText = tsText
             )
+            require(updated == 1) { "No se pudo actualizar la Salida" }
+            pending.id
         }
     }
-
-    suspend fun list(): List<PastureEvaluation> = dao.getAll()
 }
