@@ -19,6 +19,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.softwareganadero.routes.DeteccionCelosRoute
+import com.example.softwareganadero.routes.EvaluacionesPraderaAguaRoute
+import com.example.softwareganadero.routes.PastoreoYCercasRoute
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
 
@@ -113,6 +116,17 @@ fun AgrodataApp() {
                     navBack = { nav.popBackStack("potreros", inclusive = false) },
                     currentOperatorName = operatorName
                 )
+            }
+            composable("potreros/pastoreo_cercas") {
+                PastoreoYCercasRoute(
+                    onBack = { nav.popBackStack("potreros", inclusive = false) }
+                )
+            }
+            composable("potreros/deteccion_celos") {
+                DeteccionCelosRoute(onBack = { nav.popBackStack("potreros", inclusive = false) })
+            }
+            composable("potreros/evaluaciones_pradera_agua") {
+                EvaluacionesPraderaAguaRoute(onBack = { nav.popBackStack("potreros", inclusive = false) })
             }
         }
     }

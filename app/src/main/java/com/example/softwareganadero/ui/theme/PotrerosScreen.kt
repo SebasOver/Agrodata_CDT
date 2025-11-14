@@ -49,7 +49,7 @@ fun PotrerosScreen(
         "Precipitacion y inventario" to "potreros/precipitacion",
         "Deteccion celos" to "potreros/deteccion_celos",
         "Registro Nacimiento" to "potreros/registro_nacimiento",
-        "Evaluacion pradera y agua" to "potreros/evaluacion_pradera_agua",
+        "Evaluacion pradera y agua" to "potreros/evaluaciones_pradera_agua",
         "Pastoreo y estado cercas" to "potreros/pastoreo_cercas",
         "Suplementos" to "potreros/suplementos"
     )

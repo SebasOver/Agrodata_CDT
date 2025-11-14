@@ -249,12 +249,12 @@ fun RegistroNacimientosScreen(
                         Toast.makeText(ctx, "Selecciona la vaca e ingresa la cría", Toast.LENGTH_LONG).show()
                         return@Button
                     }
-
+                    /*
                     val operador = currentOperatorName.trim()
                     if (operador.isBlank()) {
                         Toast.makeText(ctx, "Operario no disponible. Selecciónalo en inicio.", Toast.LENGTH_LONG).show()
                         return@Button
-                    }
+                    }*/
                     scope.launch {
                         birthRepo.saveBirth(
                             cowTag = cowTag!!,
