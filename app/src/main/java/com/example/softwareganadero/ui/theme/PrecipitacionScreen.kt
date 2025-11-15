@@ -19,6 +19,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -26,22 +27,10 @@ import com.example.softwareganadero.R
 import com.example.softwareganadero.data.AgroDatabase
 import com.example.softwareganadero.data.Precipitation
 import com.example.softwareganadero.data.PastureInventory
+import com.example.softwareganadero.domain.PrecipitacionRepository
 import kotlinx.coroutines.launch
-
-
-// Repositorio mínimo (usa los DAOs de AgroDatabase)
-class PrecipitacionRepository(private val db: AgroDatabase) {
-    suspend fun savePrecipitation(amountMm: Double, operator: String, atText: String, atMillis: Long) {
-        db.precipitationDao().insert(
-            Precipitation(amountMm = amountMm, operatorName = operator, createdAt = atMillis, createdAtText = atText)
-        )
-    }
-    suspend fun savePastureInventory(healthy: Int, sick: Int, total: Int, operator: String, atText: String, atMillis: Long) {
-        db.pastureInventoryDao().insert(
-            PastureInventory(healthy = healthy, sick = sick, total = total, operatorName = operator, createdAt = atMillis, createdAtText = atText)
-        )
-    }
-}
+import java.time.Instant
+import java.time.ZoneId
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -64,19 +53,22 @@ fun PrecipitacionScreen(
     val precipValid = precipMm.isNotBlank() && precipMm.toDoubleOrNull() != null
 
     // ---------- Estado: Inventario ----------
+    var lot by rememberSaveable { mutableStateOf("") }        // NUEVO
     var healthy by rememberSaveable { mutableStateOf("") }
     var sick by rememberSaveable { mutableStateOf("") }
+    var savingInv by rememberSaveable { mutableStateOf(false) } // <- añade esto
+
+    val lotInt = lot.toIntOrNull()
     val hInt = healthy.toIntOrNull()
     val sInt = sick.toIntOrNull()
     val total = (hInt ?: 0) + (sInt ?: 0)
-    var savingInv by rememberSaveable { mutableStateOf(false) }
-    val inventoryValid = hInt != null && sInt != null
+    val inventoryValid = lotInt != null && hInt != null && sInt != null
 
     Scaffold(
         containerColor = Color.White,
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Precipitación e inventario potreros", fontWeight = FontWeight.Bold) },
+                title = { Text("Precipitación e inventario animales", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = navBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
@@ -151,9 +143,23 @@ fun PrecipitacionScreen(
 
             // ====== Sección: Inventario potreros ======
             Text(
-                "Inventario potreros",
-                fontWeight = FontWeight.SemiBold, fontSize = 18.sp,
-                textDecoration = TextDecoration.Underline, color = primaryBlue
+                "Inventario animales",
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 18.sp,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
+            )
+
+            Text("Lote de ganado")
+            TextField(
+                value = lot,
+                onValueChange = { s -> if (s.isEmpty() || s.matches(Regex("""\d+"""))) lot = s },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                isError = lot.isNotEmpty() && lotInt == null,
+                supportingText = { if (lot.isNotEmpty() && lotInt == null) Text("Número entero") },
+                modifier = Modifier.fillMaxWidth(),
+                colors = TextFieldDefaults.colors(focusedContainerColor = lightBlue, unfocusedContainerColor = lightBlue)
             )
 
             Text("Animales sanos")
@@ -165,10 +171,7 @@ fun PrecipitacionScreen(
                 isError = healthy.isNotEmpty() && hInt == null,
                 supportingText = { if (healthy.isNotEmpty() && hInt == null) Text("Número entero") },
                 modifier = Modifier.fillMaxWidth(),
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = lightBlue,
-                    unfocusedContainerColor = lightBlue
-                )
+                colors = TextFieldDefaults.colors(focusedContainerColor = lightBlue, unfocusedContainerColor = lightBlue)
             )
 
             Text("Animales enfermos")
@@ -180,47 +183,47 @@ fun PrecipitacionScreen(
                 isError = sick.isNotEmpty() && sInt == null,
                 supportingText = { if (sick.isNotEmpty() && sInt == null) Text("Número entero") },
                 modifier = Modifier.fillMaxWidth(),
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = lightBlue,
-                    unfocusedContainerColor = lightBlue
-                )
+                colors = TextFieldDefaults.colors(focusedContainerColor = lightBlue, unfocusedContainerColor = lightBlue)
             )
 
-            Text("Total")
-            TextField(
-                value = total.toString(),
-                onValueChange = {},
-                readOnly = true,
-                singleLine = true,
+// Total como texto "flotando"
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color(0xFFF2F6FD),
-                    unfocusedContainerColor = Color(0xFFF2F6FD),
-                    disabledContainerColor = Color(0xFFF2F6FD)
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Total")
+                Text(
+                    text = total.toString(),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp,
+                    color = primaryBlue
                 )
-            )
+            }
 
             Button(
                 onClick = {
                     val op = currentOperatorName.trim()
-                    /*if (op.isBlank()) {
-                        Toast.makeText(ctx, "Operario no disponible. Selecciónalo en inicio.", Toast.LENGTH_LONG).show()
+                    if (!inventoryValid || savingInv) {
+                        if (!inventoryValid) {
+                            Toast.makeText(ctx, "Completa lote, sanos y enfermos con números válidos", Toast.LENGTH_LONG).show()
+                        }
                         return@Button
-                    }*/
-                    if (!inventoryValid || savingInv) return@Button
+                    }
                     savingInv = true
                     scope.launch {
                         try {
                             val nowMillis = System.currentTimeMillis()
                             val nowText = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-                                .format(java.time.Instant.ofEpochMilli(nowMillis)
-                                    .atZone(java.time.ZoneId.systemDefault()))
-                            repo.savePastureInventory(hInt ?: 0, sInt ?: 0, total, op, nowText, nowMillis)
+                                .format(Instant.ofEpochMilli(nowMillis).atZone(ZoneId.systemDefault()))
+                            repo.savePastureInventory(lotInt!!, hInt!!, sInt!!, total, op, nowText, nowMillis)
                             Toast.makeText(ctx, "Inventario guardado", Toast.LENGTH_SHORT).show()
-                            healthy = ""; sick = ""
+                            lot = ""; healthy = ""; sick = ""
                         } catch (e: Exception) {
                             Toast.makeText(ctx, "Error: ${e.message ?: "desconocido"}", Toast.LENGTH_LONG).show()
-                        } finally { savingInv = false }
+                        } finally {
+                            savingInv = false
+                        }
                     }
                 },
                 enabled = inventoryValid && !savingInv,

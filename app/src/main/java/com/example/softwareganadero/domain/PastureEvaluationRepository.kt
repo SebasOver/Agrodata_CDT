@@ -6,21 +6,29 @@ import com.example.softwareganadero.data.PastureEvaluation
 class PastureEvaluationRepository(private val db: AgroDatabase) {
     private val dao = db.pastureEvaluationDao()
 
-    // kind: "Entrada" o "Salida"; height y color obligatorios en ambos
-    suspend fun save(kind: String, height: String, color: String, ts: Long, tsText: String): Long {
-        val h = height.trim()
-        val hNum = h.toDoubleOrNull()
-        require(hNum != null) { "Altura numérica requerida" }
-
+    suspend fun save(
+        kind: String,
+        rotation: String,
+        paddock: String,
+        height: String,
+        color: String,
+        ts: Long,
+        tsText: String
+    ): Long {
         val k = kind.trim()
         require(k == "Entrada" || k == "Salida") { "Tipo inválido" }
 
-        val c = color.trim()
-        require(c.isNotEmpty()) { "Selecciona un color" }
+        val r = rotation.trim(); require(r.isNotEmpty()) { "Rotación requerida" }
+        val p = paddock.trim(); require(p.isNotEmpty()) { "Potrero requerido" }
+
+        val h = height.trim(); require(h.toDoubleOrNull() != null) { "Altura numérica requerida" }
+        val c = color.trim(); require(c.isNotEmpty()) { "Selecciona un color" }
 
         return if (k == "Entrada") {
             dao.insert(
                 PastureEvaluation(
+                    rotation = r,
+                    paddock = p,
                     heightEntry = h,
                     heightExit = null,
                     colorEntry = c,
@@ -31,9 +39,7 @@ class PastureEvaluationRepository(private val db: AgroDatabase) {
             )
         } else {
             val pending = dao.lastPendingExit()
-            require(pending != null && pending.heightEntry?.isNotEmpty() == true && pending.heightExit == null) {
-                "Debe existir una Entrada pendiente para registrar la Salida"
-            }
+            require(pending != null && pending.heightExit == null) { "No hay Entrada pendiente" }
             val updated = dao.updateExit(
                 id = pending.id,
                 heightExit = h,

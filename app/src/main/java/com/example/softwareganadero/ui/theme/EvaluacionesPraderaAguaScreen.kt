@@ -3,15 +3,24 @@ package com.example.softwareganadero.ui.theme
 import android.os.Build
 import android.widget.Toast
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -30,6 +39,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -51,13 +61,15 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.softwareganadero.R
 import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.ZoneId
 
 @RequiresApi(Build.VERSION_CODES.O)
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun EvaluacionesPraderaAguaScreen(
     onBack: () -> Unit,
-    onGuardarPradera: suspend (kind: String, height: String, color: String?, ts: Long, tsText: String) -> Unit,
+    onGuardarPradera: suspend (kind: String, rotation: String, paddock: String, height: String, color: String, ts: Long, tsText: String) -> Unit,
     onGuardarAgua: suspend (availability: String, temperature: String, ts: Long, tsText: String) -> Unit
 ) {
     val ctx = LocalContext.current
@@ -65,189 +77,234 @@ fun EvaluacionesPraderaAguaScreen(
     val lightBlue = Color(0xFFE6F0FA)
 
     // Estado Pradera
-    var kind by rememberSaveable { mutableStateOf("Entrada") } // "Entrada" o "Salida"
+    var kind by rememberSaveable { mutableStateOf("Entrada") }        // Entrada/Salida
     var height by rememberSaveable { mutableStateOf("") }
     val colores = listOf("verde intenso","verde normal","verde claro")
     var colorExpanded by rememberSaveable { mutableStateOf(false) }
     var colorSelected by rememberSaveable { mutableStateOf<String?>(null) }
 
+    // Rotación/Potrero persistentes una sola vez
+    var rotation by rememberSaveable { mutableStateOf("") }
+    var paddock by rememberSaveable { mutableStateOf("") }
+    // Bandera: entrada registrada => ocultar inputs de rotación/potrero
+    var entradaFijada by rememberSaveable { mutableStateOf(false) }
+
     // Estado Agua
-    var availability by rememberSaveable { mutableStateOf<String?>(null) } // Escaso/Normal/Suficiente
+    var availability by rememberSaveable { mutableStateOf<String?>(null) }
     var temperature by rememberSaveable { mutableStateOf("") }
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("Evaluaciones", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver") }
-                },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) } },
                 actions = { Image(painterResource(R.drawable.logo_blanco), null, Modifier.size(44.dp)) },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White)
             )
         },
         containerColor = Color.White
     ) { inner ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(inner)
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Evaluación pradera
-            Text("Evaluacion pradera", style = MaterialTheme.typography.titleMedium)
-
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                Row(
-                    modifier = Modifier.selectable(selected = kind == "Entrada", onClick = { kind = "Entrada" }, role = Role.RadioButton),
-                    verticalAlignment = Alignment.CenterVertically
-                ) { RadioButton(selected = kind == "Entrada", onClick = null); Text("Entrada", modifier = Modifier.padding(start = 6.dp)) }
-                Row(
-                    modifier = Modifier.selectable(selected = kind == "Salida", onClick = { kind = "Salida" }, role = Role.RadioButton),
-                    verticalAlignment = Alignment.CenterVertically
-                ) { RadioButton(selected = kind == "Salida", onClick = null); Text("Salida", modifier = Modifier.padding(start = 6.dp)) }
+            item {
+                Text("Evaluacion pradera", style = MaterialTheme.typography.titleMedium)
             }
 
-            Text("Altura")
-            TextField(
-                value = height,
-                onValueChange = { txt ->
-                    // Acepta entero o decimal con un solo punto
-                    val ok = txt.isEmpty() || txt.matches(Regex("""\d+(\.\d{0,2})?"""))
-                    if (ok) height = txt
-                },
-                modifier = Modifier.fillMaxWidth(),
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = lightBlue,
-                    unfocusedContainerColor = lightBlue
-                ),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-            )
+            item {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                    RadioWithLabel("Entrada", selected = kind == "Entrada") { kind = "Entrada" }
+                    RadioWithLabel("Salida", selected = kind == "Salida") { kind = "Salida" }
+                }
+            }
 
-            ExposedDropdownMenuBox(
-                expanded = colorExpanded,
-                onExpandedChange = { colorExpanded = !colorExpanded },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                TextField(
-                    value = colorSelected ?: "Color",
-                    onValueChange = {},
-                    readOnly = true,
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = colorExpanded) },
-                    modifier = Modifier.menuAnchor().fillMaxWidth(),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = lightBlue,
-                        unfocusedContainerColor = lightBlue
-                    )
-                )
-                ExposedDropdownMenu(expanded = colorExpanded, onDismissRequest = { colorExpanded = false }) {
-                    colores.forEach { c ->
-                        DropdownMenuItem(text = { Text(c) }, onClick = { colorSelected = c; colorExpanded = false })
+            // Rotación y Potrero: visibles solo si aún no se fijaron
+            item {
+                AnimatedVisibility(
+                    visible = !entradaFijada,
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut()
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text("Rotacion")
+                        TextField(
+                            value = rotation,
+                            onValueChange = { rotation = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = TextFieldDefaults.colors(focusedContainerColor = lightBlue, unfocusedContainerColor = lightBlue),
+                            singleLine = true
+                        )
+                        Text("Potrero")
+                        TextField(
+                            value = paddock,
+                            onValueChange = { paddock = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = TextFieldDefaults.colors(focusedContainerColor = lightBlue, unfocusedContainerColor = lightBlue),
+                            singleLine = true
+                        )
                     }
                 }
             }
 
-            Button(
-                onClick = {
-                    val h = height.trim()
-                    val hNum = h.toDoubleOrNull()
-                    if (h.isEmpty() || hNum == null) {
-                        Toast.makeText(ctx, "Altura numérica requerida", Toast.LENGTH_LONG).show()
-                        return@Button
+            // Si ya se fijaron, muestra resumen compacto para que “Agua” suba
+            item {
+                AnimatedVisibility(
+                    visible = entradaFijada,
+                    enter = fadeIn(), exit = fadeOut()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFFF7F9FC), RoundedCornerShape(12.dp))
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Rotación: $rotation")
+                        Text("Potrero: $paddock")
                     }
-                    val c = colorSelected?.trim().orEmpty()
-                    if (c.isEmpty()) {
-                        Toast.makeText(ctx, "Selecciona un color", Toast.LENGTH_LONG).show()
-                        return@Button
-                    }
-                    val ts = System.currentTimeMillis()
-                    val tsText = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-                        .format(java.time.Instant.ofEpochMilli(ts).atZone(java.time.ZoneId.systemDefault()))
-                    scope.launch {
-                        try {
-                            onGuardarPradera(kind, h, c, ts, tsText)
-                            Toast.makeText(ctx, "Pradera guardada", Toast.LENGTH_LONG).show()
-                            // Limpieza
-                            height = ""
-                            colorSelected = null
-                            // No limpiamos kind para respetar la última selección
-                        } catch (t: Throwable) {
-                            Toast.makeText(ctx, t.message ?: "Error al guardar pradera", Toast.LENGTH_LONG).show()
-                        }
-                    }
-                },
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E73C8), contentColor = Color.White),
-                shape = RoundedCornerShape(24.dp)
-            ) { Text("Guardar") }
+                }
+            }
 
-            Divider(color = Color(0x11000000))
+            item {
+                Text("Altura")
+                TextField(
+                    value = height,
+                    onValueChange = { txt -> if (txt.isEmpty() || txt.matches(Regex("""\d+(\.\d{0,2})?"""))) height = txt },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = TextFieldDefaults.colors(focusedContainerColor = lightBlue, unfocusedContainerColor = lightBlue),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+            }
+
+            item {
+                ExposedDropdownMenuBox(expanded = colorExpanded, onExpandedChange = { colorExpanded = !colorExpanded }, modifier = Modifier.fillMaxWidth()) {
+                    TextField(
+                        value = colorSelected ?: "Color",
+                        onValueChange = {},
+                        readOnly = true,
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = colorExpanded) },
+                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        colors = TextFieldDefaults.colors(focusedContainerColor = lightBlue, unfocusedContainerColor = lightBlue)
+                    )
+                    ExposedDropdownMenu(expanded = colorExpanded, onDismissRequest = { colorExpanded = false }) {
+                        colores.forEach { c -> DropdownMenuItem(text = { Text(c) }, onClick = { colorSelected = c; colorExpanded = false }) }
+                    }
+                }
+            }
+
+            item {
+                Button(
+                    onClick = {
+                        val r = rotation.trim()
+                        val p = paddock.trim()
+                        if (!entradaFijada) {
+                            if (r.isEmpty()) { Toast.makeText(ctx, "Rotación requerida", Toast.LENGTH_LONG).show(); return@Button }
+                            if (p.isEmpty()) { Toast.makeText(ctx, "Potrero requerido", Toast.LENGTH_LONG).show(); return@Button }
+                        }
+                        val h = height.trim()
+                        val hNum = h.toDoubleOrNull() ?: run {
+                            Toast.makeText(ctx, "Altura numérica requerida", Toast.LENGTH_LONG).show(); return@Button
+                        }
+                        val c = colorSelected?.trim().orEmpty()
+                        if (c.isEmpty()) { Toast.makeText(ctx, "Selecciona un color", Toast.LENGTH_LONG).show(); return@Button }
+
+                        val ts = System.currentTimeMillis()
+                        val tsText = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+                            .format(Instant.ofEpochMilli(ts).atZone(ZoneId.systemDefault()))
+                        scope.launch {
+                            try {
+                                // Pasa siempre rotation/paddock actuales; si ya estaban fijados, permanecen
+                                onGuardarPradera(kind, rotation, paddock, h, c, ts, tsText)
+                                Toast.makeText(ctx, "Pradera guardada", Toast.LENGTH_LONG).show()
+                                // Solo se fijan al registrar ENTRADA por primera vez
+                                if (kind == "Entrada") entradaFijada = true
+                                height = ""; colorSelected = null
+                            } catch (t: Throwable) {
+                                Toast.makeText(ctx, t.message ?: "Error al guardar pradera", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E73C8), contentColor = Color.White),
+                    shape = RoundedCornerShape(24.dp)
+                ) { Text("Guardar") }
+            }
+
+            item { Divider(color = Color(0x11000000)) }
 
             // Evaluación agua
-            Text("Evaluacion agua", style = MaterialTheme.typography.titleMedium)
+            stickyHeader {
+                // Header pegajoso para que Agua se mantenga visible al desplazarse
+                Surface(color = Color.White) {
+                    Text("Evaluacion agua", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(vertical = 4.dp))
+                }
+            }
 
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                listOf("Escaso","Normal","Suficiente").forEach { label ->
-                    Row(
-                        modifier = Modifier.selectable(
-                            selected = availability == label,
-                            onClick = { availability = label },
-                            role = Role.RadioButton
-                        ),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(selected = availability == label, onClick = null)
-                        Text(label, modifier = Modifier.padding(start = 6.dp))
+            item {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                    listOf("Escaso","Normal","Suficiente").forEach { label ->
+                        RadioWithLabel(label, selected = availability == label) { availability = label }
                     }
                 }
             }
 
-            Text("Temperatura")
-            TextField(
-                value = temperature,
-                onValueChange = { txt -> if (txt.all { it.isDigit() || it == '.' } || txt.isEmpty()) temperature = txt },
-                modifier = Modifier.fillMaxWidth(),
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = lightBlue,
-                    unfocusedContainerColor = lightBlue
-                ),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-            )
+            item {
+                Text("Temperatura")
+                TextField(
+                    value = temperature,
+                    onValueChange = { txt -> if (txt.all { it.isDigit() || it == '.' } || txt.isEmpty()) temperature = txt },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = TextFieldDefaults.colors(focusedContainerColor = lightBlue, unfocusedContainerColor = lightBlue),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+            }
 
-            Button(
-                onClick = {
-                    val a = availability
-                    val t = temperature.trim()
-                    if (a.isNullOrEmpty()) {
-                        Toast.makeText(ctx, "Selecciona disponibilidad de agua", Toast.LENGTH_LONG).show()
-                        return@Button
-                    }
-                    if (t.isEmpty() || t.toDoubleOrNull() == null) {
-                        Toast.makeText(ctx, "Temperatura numérica requerida", Toast.LENGTH_LONG).show()
-                        return@Button
-                    }
-                    val ts = System.currentTimeMillis()
-                    val tsText = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-                        .format(java.time.Instant.ofEpochMilli(ts).atZone(java.time.ZoneId.systemDefault()))
-                    scope.launch {
-                        try {
-                            onGuardarAgua(a, t, ts, tsText)
-                            Toast.makeText(ctx, "Agua guardada", Toast.LENGTH_LONG).show()
-                            // Limpieza
-                            availability = null
-                            temperature = ""
-                        } catch (t2: Throwable) {
-                            Toast.makeText(ctx, t2.message ?: "Error al guardar agua", Toast.LENGTH_LONG).show()
+            item {
+                Button(
+                    onClick = {
+                        val a = availability ?: run {
+                            Toast.makeText(ctx, "Selecciona disponibilidad de agua", Toast.LENGTH_LONG).show(); return@Button
                         }
-                    }
-                },
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E73C8), contentColor = Color.White),
-                shape = RoundedCornerShape(24.dp)
-            ) { Text("Guardar") }
+                        val t = temperature.trim().toDoubleOrNull() ?: run {
+                            Toast.makeText(ctx, "Temperatura numérica requerida", Toast.LENGTH_LONG).show(); return@Button
+                        }
+                        val ts = System.currentTimeMillis()
+                        val tsText = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+                            .format(Instant.ofEpochMilli(ts).atZone(ZoneId.systemDefault()))
+                        scope.launch {
+                            try {
+                                onGuardarAgua(a, t.toString(), ts, tsText)
+                                Toast.makeText(ctx, "Agua guardada", Toast.LENGTH_LONG).show()
+                                availability = null; temperature = ""
+                            } catch (t2: Throwable) {
+                                Toast.makeText(ctx, t2.message ?: "Error al guardar agua", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E73C8), contentColor = Color.White),
+                    shape = RoundedCornerShape(24.dp)
+                ) { Text("Guardar") }
+            }
+
+            item { Spacer(Modifier.height(12.dp)) }
         }
+    }
+}
+
+@Composable
+private fun RadioWithLabel(text: String, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier.selectable(selected = selected, onClick = onClick, role = Role.RadioButton),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(selected = selected, onClick = null)
+        Text(text, modifier = Modifier.padding(start = 6.dp))
     }
 }

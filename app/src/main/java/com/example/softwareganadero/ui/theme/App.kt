@@ -25,6 +25,7 @@ import com.example.softwareganadero.routes.CorralesRoute
 import com.example.softwareganadero.routes.DeteccionCelosRoute
 import com.example.softwareganadero.routes.EvaluacionesPraderaAguaRoute
 import com.example.softwareganadero.routes.PotrerosRoute
+import com.example.softwareganadero.routes.PrecipitacionRoute
 import com.example.softwareganadero.routes.RegistroNacimientosRoute
 import com.example.softwareganadero.routes.VisitasRoute
 import com.example.softwareganadero.routes.WelcomeRoute
@@ -78,12 +79,10 @@ fun AgrodataApp() {
 
             // Potreros - subrutas
             composable("potreros/precipitacion") {
-                val operador = session.operarioActual.orEmpty()
-                PrecipitacionScreen(
-                    navBack = { nav.popBackStack("potreros", inclusive = false) },
-                    currentOperatorName = operador
-                )
+                val operador = session.operarioActual.orEmpty()  // o donde lo tengas
+                PrecipitacionRoute(nav = nav, currentOperatorName = operador.orEmpty())
             }
+
 
             // Registro nacimientos vía Route (usa operador del VM si ya lo expones)
             composable("potreros/registro_nacimiento") {
@@ -102,12 +101,7 @@ fun AgrodataApp() {
             }
 
             composable("potreros/evaluaciones_pradera_agua") {
-                EvaluacionesPraderaAguaRoute(onBack = {
-                    nav.popBackStack(
-                        "potreros",
-                        inclusive = false
-                    )
-                })
+                EvaluacionesPraderaAguaRoute(nav = nav) // sin onBack aquí
             }
             /*
             // Visitas - subrutas (ajuste de Insumos -> Particulares)

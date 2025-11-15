@@ -8,9 +8,10 @@ import androidx.room.*
 )
 data class PastureInventory(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val healthy: Int,
-    val sick: Int,
-    val total: Int,
+    @ColumnInfo(name = "lot") val lot: Int,                   // NUEVO
+    @ColumnInfo(name = "healthy") val healthy: Int,
+    @ColumnInfo(name = "sick") val sick: Int,
+    @ColumnInfo(name = "total") val total: Int,
     @ColumnInfo(name = "operator_name") val operatorName: String,
     @ColumnInfo(name = "created_at") val createdAt: Long,
     @ColumnInfo(name = "created_at_text") val createdAtText: String

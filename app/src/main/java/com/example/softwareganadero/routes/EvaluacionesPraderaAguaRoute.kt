@@ -4,28 +4,31 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
+import androidx.navigation.NavController
 import com.example.softwareganadero.data.AgroDatabase
 import com.example.softwareganadero.domain.PastureEvaluationRepository
 import com.example.softwareganadero.domain.WaterEvaluationRepository
 import com.example.softwareganadero.ui.theme.EvaluacionesPraderaAguaScreen
+import kotlinx.coroutines.launch
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun EvaluacionesPraderaAguaRoute(onBack: () -> Unit) {
+fun EvaluacionesPraderaAguaRoute(nav: NavController) {
     val ctx = LocalContext.current
     val db = remember { AgroDatabase.get(ctx) }
     val pastureRepo = remember { PastureEvaluationRepository(db) }
     val waterRepo = remember { WaterEvaluationRepository(db) }
+    val scope = rememberCoroutineScope()
 
     EvaluacionesPraderaAguaScreen(
-        onBack = onBack,
-        onGuardarPradera = { kind, height, color, ts, tsText ->
-            val c = color?.trim().orEmpty()
-            // si también quieres validar aquí:
-            require(c.isNotEmpty()) { "Selecciona un color" }
-            pastureRepo.save(kind, height, c, ts, tsText)
+        onBack = { nav.popBackStack("potreros", inclusive = false) },
+        onGuardarPradera = { kind, rotation, paddock, height, color, ts, tsText ->
+            scope.launch { pastureRepo.save(kind, rotation, paddock, height, color, ts, tsText) }
         },
-        onGuardarAgua = { availability, temp, ts, tsText -> waterRepo.save(availability, temp, ts, tsText) }
+        onGuardarAgua = { availability, temp, ts, tsText ->
+            scope.launch { waterRepo.save(availability, temp, ts, tsText) }
+        }
     )
 }

@@ -29,7 +29,4 @@ interface PastureEvaluationDao {
         updatedAt: Long,
         updatedAtText: String
     ): Int
-
-    @Query("SELECT * FROM pasture_evaluations ORDER BY created_at DESC")
-    suspend fun getAll(): List<PastureEvaluation>
 }
