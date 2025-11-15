@@ -45,20 +45,19 @@ fun CorralesScreen(
     val sys = rememberSystemUiController()
     LaunchedEffect(Unit) { sys.setSystemBarsColor(Color.White, darkIcons = true) }
 
+    // Ajusta los títulos y rutas reales de tus submódulos de corrales
     val opciones = listOf(
-        "Control Parasitos" to "corrales/control_parasitos",
-        "Palpación" to "corrales/palpacion",
+        "Control sanitario" to "corrales/control_sanitario",
+        "Palpacion" to "corrales/palpacion",
         "Pesaje" to "corrales/pesaje",
-        "Triage" to "corrales/triage"
-    )
+        "Triage" to "corrales/Triage",
+        )
 
     Scaffold(
         containerColor = Color.White,
         topBar = {
             CenterAlignedTopAppBar(
-                title = {
-                    Text("Corrales", fontFamily = Nunito, fontWeight = FontWeight.Bold, fontSize = 22.sp)
-                },
+                title = { Text("Corrales", fontFamily = Nunito, fontWeight = FontWeight.Bold, fontSize = 22.sp) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
@@ -91,10 +90,7 @@ fun CorralesScreen(
             opciones.forEach { (titulo, ruta) ->
                 Button(
                     onClick = { onNavigate(ruta) },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF2E73C8),
-                        contentColor = Color.White
-                    ),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E73C8), contentColor = Color.White),
                     shape = RoundedCornerShape(40.dp),
                     contentPadding = PaddingValues(vertical = 18.dp, horizontal = 24.dp),
                     modifier = Modifier

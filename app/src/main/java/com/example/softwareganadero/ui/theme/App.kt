@@ -20,9 +20,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.softwareganadero.routes.BienvenidaOperarioRoute
+import com.example.softwareganadero.routes.CercasUnificadasRoute
+import com.example.softwareganadero.routes.CorralesRoute
 import com.example.softwareganadero.routes.DeteccionCelosRoute
 import com.example.softwareganadero.routes.EvaluacionesPraderaAguaRoute
-import com.example.softwareganadero.routes.PastoreoYCercasRoute
+import com.example.softwareganadero.routes.PotrerosRoute
+import com.example.softwareganadero.routes.RegistroNacimientosRoute
+import com.example.softwareganadero.routes.VisitasRoute
 import com.example.softwareganadero.routes.WelcomeRoute
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
@@ -42,28 +46,37 @@ fun AgrodataApp() {
         background = brandBlue, onBackground = Color.White
     )) {
         val nav = rememberNavController()
+
         NavHost(navController = nav, startDestination = "welcome") {
+            // Login
             composable("welcome") { WelcomeRoute(nav) }
-            composable("home/{name}", arguments = listOf(navArgument("name"){ type = NavType.StringType })) {
+
+            // Admin (se mantiene)
+            composable(
+                "home/{name}",
+                arguments = listOf(navArgument("name") { type = NavType.StringType })
+            ) {
                 val name = it.arguments?.getString("name").orEmpty()
                 HomePlaceholder(name)
             }
-            composable("adminExport/{name}", arguments = listOf(navArgument("name"){ type = NavType.StringType })) {
+            composable(
+                "adminExport/{name}",
+                arguments = listOf(navArgument("name") { type = NavType.StringType })
+            ) {
                 val name = it.arguments?.getString("name").orEmpty()
                 AdminExportScreen(currentUserName = name)
             }
+
+            // Menú operario
             composable("bienvenida_operario") { BienvenidaOperarioRoute(nav) }
 
+            // Menús principales
+            composable("corrales") { CorralesRoute(nav) }
+            composable("visitas") { VisitasRoute(nav) }
+            composable("potreros") { PotrerosRoute(nav) }
+            // composable("cultivos") { CultivosRoute(onBack = { nav.popBackStack("bienvenida_operario", false) }) } // cuando lo tengas
 
-            /*
-            composable("corrales") { CorralesRoute(onBack = { nav.popBackStack("bienvenida_operario", false) }) }
-            composable("visitas") { VisitasRoute(onBack = { nav.popBackStack("bienvenida_operario", false) }) }
-            composable("potreros") { PotrerosRoute(onBack = { nav.popBackStack("bienvenida_operario", false) }) }
-
-            // NUEVO: Cultivos
-            composable("cultivos") { CultivosRoute(onBack = { nav.popBackStack("bienvenida_operario", false) }) }
-            */
-
+            // Potreros - subrutas
             composable("potreros/precipitacion") {
                 val operador = session.operarioActual.orEmpty()
                 PrecipitacionScreen(
@@ -71,28 +84,50 @@ fun AgrodataApp() {
                     currentOperatorName = operador
                 )
             }
-            composable(
-                "potreros/registro_nacimiento/{operatorName}",
-                arguments = listOf(navArgument("operatorName"){ type = NavType.StringType })
-            ) { backStackEntry ->
-                val operatorName = backStackEntry.arguments?.getString("operatorName").orEmpty()
-                RegistroNacimientosScreen(
-                    navBack = { nav.popBackStack("potreros", inclusive = false) },
-                    currentOperatorName = operatorName
+
+            // Registro nacimientos vía Route (usa operador del VM si ya lo expones)
+            composable("potreros/registro_nacimiento") {
+                val operador = session.operarioActual.orEmpty()
+                RegistroNacimientosRoute(
+                    nav = nav,
+                    currentOperatorName = operador
                 )
             }
-            composable("potreros/pastoreo_cercas") {
-                PastoreoYCercasRoute(
-                    onBack = { nav.popBackStack("potreros", inclusive = false) }
-                )
-            }
+
+            composable("potreros/cercas") { CercasUnificadasRoute(nav) }
+
+
             composable("potreros/deteccion_celos") {
                 DeteccionCelosRoute(onBack = { nav.popBackStack("potreros", inclusive = false) })
             }
+
             composable("potreros/evaluaciones_pradera_agua") {
-                EvaluacionesPraderaAguaRoute(onBack = { nav.popBackStack("potreros", inclusive = false) })
+                EvaluacionesPraderaAguaRoute(onBack = {
+                    nav.popBackStack(
+                        "potreros",
+                        inclusive = false
+                    )
+                })
             }
+            /*
+            // Visitas - subrutas (ajuste de Insumos -> Particulares)
+            composable("visitas/instituciones") {
+                InstitucionesRoute(onBack = { nav.popBackStack("visitas", inclusive = false) })
+            }
+            composable("visitas/particulares") {
+                ParticularesRoute(onBack = { nav.popBackStack("visitas", inclusive = false) })
+            }
+
+            // Corrales - subrutas (ajuste a Control sanitario)
+            composable("corrales/alimentacion") {
+                AlimentacionRoute(onBack = { nav.popBackStack("corrales", inclusive = false) })
+            }
+            composable("corrales/registro_animales") {
+                RegistroAnimalesRoute(onBack = { nav.popBackStack("corrales", inclusive = false) })
+            }
+            composable("corrales/control_sanitario") {
+                ControlSanitarioRoute(onBack = { nav.popBackStack("corrales", inclusive = false) })
+            }*/
         }
     }
 }
-

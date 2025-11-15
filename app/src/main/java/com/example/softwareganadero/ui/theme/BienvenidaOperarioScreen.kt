@@ -51,10 +51,10 @@ fun BienvenidaOperarioScreen(
     LaunchedEffect(Unit) { sys.setSystemBarsColor(color = Color.White, darkIcons = true) }
 
     val opciones = listOf(
-        OpcionBienvenida("Corrales", R.drawable.corral),
-        OpcionBienvenida("Visitas", R.drawable.visitas),
         OpcionBienvenida("Potreros", R.drawable.potreros),
-        OpcionBienvenida("Cultivos", R.drawable.cultivos) // NUEVO
+        OpcionBienvenida("Corrales", R.drawable.corral),
+        OpcionBienvenida("Cultivos", R.drawable.cultivos),
+        OpcionBienvenida("Visitas", R.drawable.visitas)
     )
 
     Scaffold(

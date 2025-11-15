@@ -48,16 +48,14 @@ fun VisitasScreen(
 
     val opciones = listOf(
         "Instituciones" to "visitas/instituciones",
-        "Insumos" to "visitas/insumos"
+        "Particulares" to "visitas/particulares" // antes: Insumos
     )
 
     Scaffold(
         containerColor = Color.White,
         topBar = {
             CenterAlignedTopAppBar(
-                title = {
-                    Text("Visitas", fontFamily = Nunito, fontWeight = FontWeight.Bold, fontSize = 22.sp)
-                },
+                title = { Text("Visitas", fontFamily = Nunito, fontWeight = FontWeight.Bold, fontSize = 22.sp) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
@@ -91,10 +89,7 @@ fun VisitasScreen(
             opciones.forEach { (titulo, ruta) ->
                 Button(
                     onClick = { onNavigate(ruta) },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF2E73C8),
-                        contentColor = Color.White
-                    ),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E73C8), contentColor = Color.White),
                     shape = RoundedCornerShape(40.dp),
                     contentPadding = PaddingValues(vertical = 18.dp, horizontal = 24.dp),
                     modifier = Modifier
@@ -106,7 +101,7 @@ fun VisitasScreen(
                     Text(titulo, fontFamily = Nunito, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
-            Spacer(Modifier.weight(1f)) // empuja para mantener aire inferior
+            Spacer(Modifier.weight(1f))
         }
     }
 }

@@ -9,10 +9,9 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.softwareganadero.dao.BirthRecordDao
 import com.example.softwareganadero.dao.FemaleCowDao
-import com.example.softwareganadero.dao.FenceStateDao
-import com.example.softwareganadero.dao.GrazingDao
 import com.example.softwareganadero.dao.HeatDetectionDao
 import com.example.softwareganadero.dao.PastureEvaluationDao
+import com.example.softwareganadero.dao.PastureFenceLogDao
 import com.example.softwareganadero.dao.PastureInventoryDAO
 import com.example.softwareganadero.dao.PrecipitationDAO
 import com.example.softwareganadero.dao.ProducerDao
@@ -24,9 +23,9 @@ import com.example.softwareganadero.dao.WaterEvaluationDao
     entities = [
         Producer::class, User::class, FemaleCow::class, BirthRecord::class,
         Precipitation::class, PastureInventory::class,
-        Grazing::class, FenceState::class, HeatDetection::class, PastureEvaluation::class, WaterEvaluation::class,
+        HeatDetection::class, PastureEvaluation::class, WaterEvaluation::class, PastureFenceLog::class,
     ],
-    version = 15, // subir desde 9
+    version = 16, // subir desde 9
     exportSchema = true
 )    abstract class AgroDatabase : RoomDatabase() {
     abstract fun producerDao(): ProducerDao
@@ -35,14 +34,13 @@ import com.example.softwareganadero.dao.WaterEvaluationDao
     abstract fun birthRecordDao(): BirthRecordDao
     abstract fun precipitationDao(): PrecipitationDAO
     abstract fun pastureInventoryDao(): PastureInventoryDAO
-    abstract fun grazingDao(): GrazingDao
-    abstract fun fenceStateDao(): FenceStateDao
-
     abstract fun heatDetectionDao(): HeatDetectionDao
 
     abstract fun pastureEvaluationDao(): PastureEvaluationDao
 
     abstract fun waterEvaluationDao(): WaterEvaluationDao
+    abstract fun pastureFenceLogDao(): PastureFenceLogDao
+
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
@@ -325,6 +323,29 @@ import com.example.softwareganadero.dao.WaterEvaluationDao
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_pasture_evaluations_created_at ON pasture_evaluations(created_at)")
             }
         }
+        val MIGRATION_15_16 = object : Migration(15, 16) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+            CREATE TABLE IF NOT EXISTS pasture_fence_logs(
+              id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+              rotacion TEXT NOT NULL,
+              potrero TEXT NOT NULL,
+              volteos TEXT NOT NULL,
+              notes TEXT,
+              created_at INTEGER NOT NULL,
+              created_at_text TEXT NOT NULL
+            )
+        """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_pasture_fence_logs_rotacion ON pasture_fence_logs(rotacion)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_pasture_fence_logs_potrero ON pasture_fence_logs(potrero)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_pasture_fence_logs_volteos ON pasture_fence_logs(volteos)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_pasture_fence_logs_created_at ON pasture_fence_logs(created_at)")
+
+                // Cuando estés listo para retirar las viejas:
+                db.execSQL("DROP TABLE IF EXISTS grazings")
+                db.execSQL("DROP TABLE IF EXISTS fences_states")
+            }
+        }
         @Volatile private var INSTANCE: AgroDatabase? = null
         /*fun get(context: Context): AgroDatabase =
             INSTANCE ?: synchronized(this) {
@@ -396,7 +417,7 @@ import com.example.softwareganadero.dao.WaterEvaluationDao
                         dbName
                     )
                         .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
-                            MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15)
+                            MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16)
                         .addCallback(object : RoomDatabase.Callback() {
                             override fun onCreate(db: SupportSQLiteDatabase) {
                                 db.execSQL("""

@@ -40,27 +40,26 @@ import com.google.accompanist.systemuicontroller.rememberSystemUiController
 @Composable
 fun PotrerosScreen(
     onBack: () -> Unit,
-    onNavigate: (String) -> Unit // recibe la ruta/destino al que ir
+    onNavigate: (String) -> Unit
 ) {
     val sys = rememberSystemUiController()
     LaunchedEffect(Unit) { sys.setSystemBarsColor(Color.White, darkIcons = true) }
 
+    // NUEVO orden
     val opciones = listOf(
         "Precipitacion y inventario" to "potreros/precipitacion",
-        "Deteccion celos" to "potreros/deteccion_celos",
-        "Registro Nacimiento" to "potreros/registro_nacimiento",
         "Evaluacion pradera y agua" to "potreros/evaluaciones_pradera_agua",
-        "Pastoreo y estado cercas" to "potreros/pastoreo_cercas",
-        "Suplementos" to "potreros/suplementos"
+        "Cercas" to "potreros/cercas",
+        "Suplementos" to "potreros/suplementos",
+        "Registro Nacimiento" to "potreros/registro_nacimiento",
+        "Deteccion celos" to "potreros/deteccion_celos"
     )
 
     Scaffold(
         containerColor = Color.White,
         topBar = {
             CenterAlignedTopAppBar(
-                title = {
-                    Text("Potreros", fontFamily = Nunito, fontWeight = FontWeight.Bold, fontSize = 22.sp)
-                },
+                title = { Text("Potreros", fontFamily = Nunito, fontWeight = FontWeight.Bold, fontSize = 22.sp) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
@@ -72,8 +71,6 @@ fun PotrerosScreen(
                         contentDescription = "Logo",
                         modifier = Modifier.size(44.dp)
                     )
-
-
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = Color.White,
@@ -84,13 +81,12 @@ fun PotrerosScreen(
             )
         }
     ) { inner ->
-        // Lista de botones grandes, estilo de tu diseño
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(inner)
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.SpaceEvenly, // reparte verticalmente
+            verticalArrangement = Arrangement.SpaceEvenly,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             opciones.forEach { (titulo, ruta) ->
@@ -101,7 +97,7 @@ fun PotrerosScreen(
                     contentPadding = PaddingValues(vertical = 18.dp, horizontal = 24.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp) // alto base
+                        .height(56.dp)
                         .clip(RoundedCornerShape(40.dp))
                         .shadow(4.dp, RoundedCornerShape(40.dp), clip = false)
                 ) {

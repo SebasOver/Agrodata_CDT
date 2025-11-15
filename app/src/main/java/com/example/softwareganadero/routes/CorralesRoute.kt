@@ -1,0 +1,13 @@
+package com.example.softwareganadero.routes
+
+import androidx.compose.runtime.Composable
+import androidx.navigation.NavController
+import com.example.softwareganadero.ui.theme.CorralesScreen
+
+@Composable
+fun CorralesRoute(nav: NavController) {
+    CorralesScreen(
+        onBack = { nav.popBackStack("bienvenida_operario", inclusive = false) },
+        onNavigate = { destino -> nav.navigate(destino) }
+    )
+}

@@ -13,20 +13,29 @@ class BirthRepository(private val db: AgroDatabase) {
         colostrum: Boolean,
         notes: String?,
         operatorName: String,
-        createdAtText: String,       // string formateado a guardar
-        createdAtMillis: Long        // opcional, para ordenamiento
+        createdAtText: String,
+        createdAtMillis: Long
     ) {
+        require(cowTag.isNotBlank()) { "Vaca requerida" }
+        require(calfTag.isNotBlank() && calfTag.toLongOrNull() != null) { "Cría numérica requerida" }
+        require(sex == "M" || sex == "H") { "Sexo inválido" }
+        val colorOk = color?.trim().orEmpty()
+        require(colorOk.isNotEmpty()) { "Color requerido" }
+        require(colorOk.none { it.isDigit() }) { "Color solo letras" }
+        val weightOk = weight?.trim().orEmpty()
+        require(weightOk.isNotEmpty() && weightOk.toDoubleOrNull() != null) { "Peso numérico requerido" }
+
         val rec = BirthRecord(
-            cowTag = cowTag,
-            calfTag = calfTag,
+            cowTag = cowTag.trim(),
+            calfTag = calfTag.trim(),
             sex = sex,
-            color = color?.trim().orEmpty().ifEmpty { null },
-            weight = weight?.trim().orEmpty().ifEmpty { null },
+            color = colorOk,
+            weight = weightOk,
             colostrum = colostrum,
             notes = notes?.trim().orEmpty().ifEmpty { null },
-            operatorName = operatorName,
-            createdAt = createdAtMillis,      // si mantienes el Long
-            createdAtText = createdAtText     // nuevo campo legible
+            operatorName = operatorName.trim(),
+            createdAt = createdAtMillis,
+            createdAtText = createdAtText
         )
         db.birthRecordDao().insert(rec)
     }
