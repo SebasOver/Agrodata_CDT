@@ -20,17 +20,12 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.softwareganadero.R
 import com.example.softwareganadero.data.AgroDatabase
-import com.example.softwareganadero.data.Precipitation
-import com.example.softwareganadero.data.PastureInventory
-import com.example.softwareganadero.dialogs.SuccessDialog
 import com.example.softwareganadero.dialogs.SuccessDialogDual
 import com.example.softwareganadero.domain.PrecipitacionRepository
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId

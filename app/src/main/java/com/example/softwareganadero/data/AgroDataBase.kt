@@ -22,12 +22,14 @@ import com.example.softwareganadero.dao.corralesDao.HealthControlDao
 import com.example.softwareganadero.dao.corralesDao.PalpationDao
 import com.example.softwareganadero.dao.corralesDao.TriageDao
 import com.example.softwareganadero.dao.corralesDao.WeighingDao
+import com.example.softwareganadero.dao.cultivosDAO.CropDao
 import com.example.softwareganadero.dao.visitasDao.InstitutionDao
 import com.example.softwareganadero.dao.visitasDao.ParticularDao
 import com.example.softwareganadero.data.corralesData.HealthControl
 import com.example.softwareganadero.data.corralesData.Palpation
 import com.example.softwareganadero.data.corralesData.TriageRecord
 import com.example.softwareganadero.data.corralesData.Weighing
+import com.example.softwareganadero.data.cultivosData.CropRecord
 import com.example.softwareganadero.data.visitasData.InstitutionRecord
 import com.example.softwareganadero.data.visitasData.ParticularRecord
 
@@ -38,9 +40,9 @@ import com.example.softwareganadero.data.visitasData.ParticularRecord
         Precipitation::class, PastureInventory::class,
         HeatDetection::class, PastureEvaluation::class, WaterEvaluation::class, PastureFenceLog::class,Supplement::class,
         HealthControl::class, Weighing::class, Palpation::class, TriageRecord::class, InstitutionRecord::class, ParticularRecord::class,
-
+        CropRecord::class,
     ],
-    version = 26, // subir desde 9
+    version = 27, // subir desde 9
     exportSchema = true
 )    abstract class AgroDatabase : RoomDatabase() {
     abstract fun producerDao(): ProducerDao
@@ -60,7 +62,7 @@ import com.example.softwareganadero.data.visitasData.ParticularRecord
     abstract fun triageDao(): TriageDao
     abstract fun institutionDao(): InstitutionDao
     abstract fun particularDao(): ParticularDao
-
+    abstract fun cropDao(): CropDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -552,6 +554,28 @@ import com.example.softwareganadero.data.visitasData.ParticularRecord
                 )
             }
         }
+        val MIGRATION_26_27 = object : Migration(26, 27) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+            CREATE TABLE IF NOT EXISTS crop_records(
+              id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+              lot TEXT NOT NULL,
+              species TEXT NOT NULL,
+              has_pests INTEGER NOT NULL,
+              has_diseases INTEGER NOT NULL,
+              notes TEXT,
+              created_at INTEGER NOT NULL,
+              created_at_text TEXT NOT NULL
+            )
+            """.trimIndent()
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_crop_records_created_at " +
+                            "ON crop_records(created_at)"
+                )
+            }
+        }
         @Volatile private var INSTANCE: AgroDatabase? = null
         fun get(context: Context): AgroDatabase =
             INSTANCE ?: synchronized(this) {
@@ -567,7 +591,7 @@ import com.example.softwareganadero.data.visitasData.ParticularRecord
                         .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
                             MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16,
                             MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20,MIGRATION_20_21,MIGRATION_21_22,
-                            MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26,)
+                            MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26,MIGRATION_26_27,)
                         .addCallback(object : RoomDatabase.Callback() {
                             override fun onCreate(db: SupportSQLiteDatabase) {
                                 db.execSQL("""

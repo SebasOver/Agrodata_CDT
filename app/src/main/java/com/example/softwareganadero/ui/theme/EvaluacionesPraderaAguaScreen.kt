@@ -61,7 +61,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.softwareganadero.R
-import com.example.softwareganadero.dialogs.SuccessDialog
 import com.example.softwareganadero.dialogs.SuccessDialogDual
 import kotlinx.coroutines.launch
 import java.time.Instant

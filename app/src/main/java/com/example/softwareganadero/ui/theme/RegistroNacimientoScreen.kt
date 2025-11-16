@@ -56,7 +56,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.softwareganadero.R
 import com.example.softwareganadero.data.AgroDatabase
-import com.example.softwareganadero.dialogs.SuccessDialog
 import com.example.softwareganadero.dialogs.SuccessDialogDual
 import com.example.softwareganadero.domain.BirthRepository
 import kotlinx.coroutines.launch
