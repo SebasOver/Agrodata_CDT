@@ -2,7 +2,7 @@ package com.example.softwareganadero.routes
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavController
-import com.example.softwareganadero.ui.theme.VisitasScreen
+import com.example.softwareganadero.ui.theme.visitas.VisitasScreen
 
 @Composable
 fun VisitasRoute(nav: NavController) {

@@ -2,7 +2,7 @@ package com.example.softwareganadero.routes
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavController
-import com.example.softwareganadero.ui.theme.CorralesScreen
+import com.example.softwareganadero.ui.theme.corrales.CorralesScreen
 
 @Composable
 fun CorralesRoute(nav: NavController) {
