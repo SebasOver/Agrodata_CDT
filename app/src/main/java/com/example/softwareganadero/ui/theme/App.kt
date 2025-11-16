@@ -34,6 +34,7 @@ import com.example.softwareganadero.routes.corralesRoutes.ControlSanitarioRoute
 import com.example.softwareganadero.routes.corralesRoutes.PalpacionRoute
 import com.example.softwareganadero.routes.corralesRoutes.PesajeRoute
 import com.example.softwareganadero.routes.corralesRoutes.TriageRoute
+import com.example.softwareganadero.routes.institucionesRoutes.InstitucionesRoute
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
 
@@ -107,7 +108,8 @@ fun AgrodataApp() {
             composable("corrales/pesaje") { PesajeRoute(nav) }
             composable("corrales/palpacion") { PalpacionRoute(nav) }
             composable("corrales/triage") { TriageRoute(nav) }
-
+            // Visitas - subrutas
+            composable("visitas/instituciones"){ InstitucionesRoute(nav) }
 
         }
     }

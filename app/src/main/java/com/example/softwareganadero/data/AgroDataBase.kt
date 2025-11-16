@@ -22,10 +22,12 @@ import com.example.softwareganadero.dao.corralesDao.HealthControlDao
 import com.example.softwareganadero.dao.corralesDao.PalpationDao
 import com.example.softwareganadero.dao.corralesDao.TriageDao
 import com.example.softwareganadero.dao.corralesDao.WeighingDao
+import com.example.softwareganadero.dao.visitasDao.InstitutionDao
 import com.example.softwareganadero.data.corralesData.HealthControl
 import com.example.softwareganadero.data.corralesData.Palpation
 import com.example.softwareganadero.data.corralesData.TriageRecord
 import com.example.softwareganadero.data.corralesData.Weighing
+import com.example.softwareganadero.data.visitasData.InstitutionRecord
 
 @TypeConverters(UserRoleConverter::class) // habilita conversor enum<->TEXT [web:68]
 @Database(
@@ -33,9 +35,9 @@ import com.example.softwareganadero.data.corralesData.Weighing
         Producer::class, User::class, FemaleCow::class, BirthRecord::class,
         Precipitation::class, PastureInventory::class,
         HeatDetection::class, PastureEvaluation::class, WaterEvaluation::class, PastureFenceLog::class,Supplement::class,
-        HealthControl::class, Weighing::class, Palpation::class, TriageRecord::class,
+        HealthControl::class, Weighing::class, Palpation::class, TriageRecord::class, InstitutionRecord::class,
     ],
-    version = 24, // subir desde 9
+    version = 25, // subir desde 9
     exportSchema = true
 )    abstract class AgroDatabase : RoomDatabase() {
     abstract fun producerDao(): ProducerDao
@@ -53,6 +55,7 @@ import com.example.softwareganadero.data.corralesData.Weighing
     abstract fun weighingDao(): WeighingDao
     abstract fun palpationDao(): PalpationDao
     abstract fun triageDao(): TriageDao
+    abstract fun institutionDao(): InstitutionDao
 
 
 
@@ -490,65 +493,35 @@ import com.example.softwareganadero.data.corralesData.Weighing
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_triage_records_animal_number ON triage_records(animal_number)")
             }
         }
+        val MIGRATION_24_25 = object : Migration(24, 25) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    """
+            CREATE TABLE IF NOT EXISTS `institution_records` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `visitor_name` TEXT NOT NULL,
+                `reason` TEXT NOT NULL,
+                `notes` TEXT,
+                `created_at` INTEGER NOT NULL,
+                `created_at_text` TEXT NOT NULL,
+                `closed_at` INTEGER,
+                `closed_at_text` TEXT
+            )
+            """.trimIndent()
+                )
+
+                // indices que Room espera por la anotación @Entity(indices = ...)
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_institution_records_created_at` " +
+                            "ON `institution_records`(`created_at`)"
+                )
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_institution_records_visitor_name` " +
+                            "ON `institution_records`(`visitor_name`)"
+                )
+            }
+        }
         @Volatile private var INSTANCE: AgroDatabase? = null
-        /*fun get(context: Context): AgroDatabase =
-            INSTANCE ?: synchronized(this) {
-                INSTANCE ?: Room.databaseBuilder(context, AgroDatabase::class.java, "agrodata.db")
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
-                    .addCallback(object : RoomDatabase.Callback() {
-                        override fun onCreate(db: SupportSQLiteDatabase) {
-                            db.execSQL("""INSERT OR IGNORE INTO users (full_name, role, active, created_at) VALUES
-                    ('Camilo Rodelo','OPERATOR',1, strftime('%s','now')*1000),
-                    ('Jesus Gonzalez','OPERATOR',1, strftime('%s','now')*1000),
-                    ('Yaith Salazar','OPERATOR',1, strftime('%s','now')*1000),
-                    ('Pedro Maria','ADMIN',1, strftime('%s','now')*1000) """)
-                        }
-                        override fun onOpen(db: SupportSQLiteDatabase) {
-                            db.execSQL("""INSERT OR IGNORE INTO users (full_name, role, active, created_at) VALUES
-                    ('Camilo Rodelo','OPERATOR',1, strftime('%s','now')*1000),
-                    ('Jesus Gonzalez','OPERATOR',1, strftime('%s','now')*1000),
-                    ('Yaith Salazar','OPERATOR',1, strftime('%s','now')*1000),
-                    ('Pedro Maria','ADMIN',1, strftime('%s','now')*1000) """)
-                            // Block 1
-                            db.execSQL("""
-                    INSERT OR IGNORE INTO female_cows(tag, active, created_at) VALUES
-                    ('365',1,strftime('%s','now')*1000),('430',1,strftime('%s','now')*1000),
-                    ('440',1,strftime('%s','now')*1000),('442',1,strftime('%s','now')*1000),
-                    ('444',1,strftime('%s','now')*1000),('446',1,strftime('%s','now')*1000),
-                    ('457',1,strftime('%s','now')*1000),('458',1,strftime('%s','now')*1000),
-                    ('468',1,strftime('%s','now')*1000),('484',1,strftime('%s','now')*1000),
-                    ('01-19',1,strftime('%s','now')*1000),('02-19',1,strftime('%s','now')*1000),
-                    ('04-19',1,strftime('%s','now')*1000),('08-19',1,strftime('%s','now')*1000),
-                    ('09-19',1,strftime('%s','now')*1000)
-                    """.trimIndent())
-                            // Block 2
-                            db.execSQL("""
-                    INSERT OR IGNORE INTO female_cows(tag, active, created_at) VALUES
-                    ('10-19',1,strftime('%s','now')*1000),('12-19',1,strftime('%s','now')*1000),
-                    ('13-19',1,strftime('%s','now')*1000),('14-19',1,strftime('%s','now')*1000),
-                    ('15-19',1,strftime('%s','now')*1000),('17-19',1,strftime('%s','now')*1000),
-                    ('18-19',1,strftime('%s','now')*1000),('19-19',1,strftime('%s','now')*1000),
-                    ('23-19',1,strftime('%s','now')*1000),('25-19',1,strftime('%s','now')*1000),
-                    ('30-20',1,strftime('%s','now')*1000),('32-20',1,strftime('%s','now')*1000),
-                    ('34-20',1,strftime('%s','now')*1000),('37-20',1,strftime('%s','now')*1000),
-                    ('45-21',1,strftime('%s','now')*1000)
-                    """.trimIndent())
-                            // Block 3
-                            db.execSQL("""
-                    INSERT OR IGNORE INTO female_cows(tag, active, created_at) VALUES
-                    ('48-21',1,strftime('%s','now')*1000),('55-21',1,strftime('%s','now')*1000),
-                    ('56-21',1,strftime('%s','now')*1000),('57-21',1,strftime('%s','now')*1000),
-                    ('61-21',1,strftime('%s','now')*1000),('66-22',1,strftime('%s','now')*1000),
-                    ('77-23',1,strftime('%s','now')*1000),('80-24',1,strftime('%s','now')*1000),
-                    ('84-24',1,strftime('%s','now')*1000),('85-24',1,strftime('%s','now')*1000),
-                    ('86-24',1,strftime('%s','now')*1000),('87-24',1,strftime('%s','now')*1000),
-                    ('88-24',1,strftime('%s','now')*1000),('90-24',1,strftime('%s','now')*1000),
-                    ('91-24',1,strftime('%s','now')*1000)
-                    """.trimIndent())
-                        }
-                    })
-                    .build()
-            }*/
         fun get(context: Context): AgroDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: run { val isDebug = (context.applicationInfo.flags and
@@ -563,7 +536,7 @@ import com.example.softwareganadero.data.corralesData.Weighing
                         .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
                             MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16,
                             MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20,MIGRATION_20_21,MIGRATION_21_22,
-                            MIGRATION_22_23, MIGRATION_23_24)
+                            MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25)
                         .addCallback(object : RoomDatabase.Callback() {
                             override fun onCreate(db: SupportSQLiteDatabase) {
                                 db.execSQL("""

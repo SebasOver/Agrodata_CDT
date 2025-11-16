@@ -1,0 +1,358 @@
+package com.example.softwareganadero.ui.theme.visitas
+
+import android.os.Build
+import android.widget.Toast
+import androidx.annotation.RequiresApi
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import com.example.softwareganadero.R
+import com.example.softwareganadero.data.visitasData.InstitutionRecord
+import com.example.softwareganadero.dialogs.SuccessDialogDual
+import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.ZoneId
+
+@RequiresApi(Build.VERSION_CODES.O)
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun InstitucionesScreen(
+    onBack: () -> Unit,
+    onGuardar: suspend (
+        visitorName: String,
+        reason: String,
+        notes: String?,
+        ts: Long,
+        tsText: String
+    ) -> Unit,
+    onRegistrarSalida: suspend (
+        id: Long,
+        ts: Long,
+        tsText: String
+    ) -> Unit,
+    loadOpenVisits: suspend () -> List<InstitutionRecord>   // NUEVO
+) {
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val lightBlue = Color(0xFFE6F0FA)
+    var openVisits by remember { mutableStateOf<List<InstitutionRecord>>(emptyList()) }
+    var dropdownExpanded by rememberSaveable { mutableStateOf(false) }
+    var selectedIdForExit by rememberSaveable { mutableStateOf<Long?>(null) }
+    var visitorName by rememberSaveable { mutableStateOf("") }
+    var reason by rememberSaveable { mutableStateOf("") }
+    var notes by rememberSaveable { mutableStateOf("") }
+    var saving by rememberSaveable { mutableStateOf(false) }
+    var showSuccess by rememberSaveable { mutableStateOf(false) }
+
+    val letters = Regex("^[A-Za-zÁÉÍÓÚÜáéíóúüÑñ ]+$")
+    val nameOk = visitorName.isNotBlank() && visitorName.matches(letters)
+    val reasonOk = reason.isNotBlank() && reason.matches(letters)
+    suspend fun reloadOpenVisits() {
+        try {
+            openVisits = loadOpenVisits()
+        } catch (e: Throwable) {
+            Toast.makeText(ctx, "Error cargando visitas abiertas", Toast.LENGTH_LONG).show()
+        }
+    }
+    LaunchedEffect(Unit) {
+        reloadOpenVisits()
+    }
+    Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text("Instituciones") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver"
+                        )
+                    }
+                },
+                actions = {
+                    Image(
+                        painterResource(R.drawable.logo_blanco),
+                        null,
+                        Modifier.size(44.dp)
+                    )
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color.White
+                )
+            )
+        },
+        containerColor = Color.White
+    ) { inner ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(inner)
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            item { Text("Nombre visitante") }
+            item {
+                TextField(
+                    value = visitorName,
+                    onValueChange = { s ->
+                        if (s.isEmpty() || s.matches(letters)) visitorName = s
+                    },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                    isError = visitorName.isNotEmpty() && !nameOk,
+                    supportingText = {
+                        if (visitorName.isNotEmpty() && !nameOk)
+                            Text("Solo letras y espacios")
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent
+                    )
+                )
+            }
+
+            item { Text("Motivo de la visita") }
+            item {
+                TextField(
+                    value = reason,
+                    onValueChange = { s ->
+                        if (s.isEmpty() || s.matches(letters)) reason = s
+                    },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                    isError = reason.isNotEmpty() && !reasonOk,
+                    supportingText = {
+                        if (reason.isNotEmpty() && !reasonOk)
+                            Text("Solo letras y espacios")
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent
+                    )
+                )
+            }
+
+            item { Text("Observaciones") }
+            item {
+                TextField(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = lightBlue,
+                        unfocusedContainerColor = lightBlue
+                    )
+                )
+            }
+
+            // BOTÓN GUARDAR (registra entrada)
+            item {
+                Button(
+                    onClick = {
+                        if (!nameOk) {
+                            Toast.makeText(
+                                ctx,
+                                "Nombre de visitante requerido (solo letras)",
+                                Toast.LENGTH_LONG
+                            ).show()
+                            return@Button
+                        }
+                        if (!reasonOk) {
+                            Toast.makeText(
+                                ctx,
+                                "Motivo requerido (solo letras)",
+                                Toast.LENGTH_LONG
+                            ).show()
+                            return@Button
+                        }
+                        if (saving || showSuccess) return@Button
+                        saving = true
+
+                        val ts = System.currentTimeMillis()
+                        val tsText =
+                            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+                                .format(
+                                    Instant.ofEpochMilli(ts)
+                                        .atZone(ZoneId.systemDefault())
+                                )
+
+                        scope.launch {
+                            try {
+                                onGuardar(
+                                    visitorName.trim(),
+                                    reason.trim(),
+                                    notes.ifBlank { null },
+                                    ts,
+                                    tsText
+                                )
+                                visitorName = ""
+                                reason = ""
+                                notes = ""
+                                // recargar dropdown al crear nueva entrada
+                                reloadOpenVisits()
+                                showSuccess = true
+                            } catch (e: Throwable) {
+                                Toast.makeText(
+                                    ctx,
+                                    e.message ?: "Error al guardar",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            } finally {
+                                saving = false
+                            }
+                        }
+                    },
+                    enabled = !saving && !showSuccess,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(28.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF2E73C8),
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text(if (saving) "Guardando..." else "Guardar")
+                }
+            }
+            item { Text("Seleccionar visita pendiente") }
+            item {
+                ExposedDropdownMenuBox(
+                    expanded = dropdownExpanded,
+                    onExpandedChange = { dropdownExpanded = !dropdownExpanded },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    val selectedVisit = openVisits.firstOrNull { it.id == selectedIdForExit }
+
+                    TextField(
+                        value = selectedVisit?.let { "${it.visitorName} - ${it.reason} (${it.createdAtText})" }
+                            ?: if (openVisits.isEmpty()) "No hay visitas pendientes"
+                            else "Elige una visita",
+                        onValueChange = {},
+                        readOnly = true,
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(dropdownExpanded) },
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth(),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = lightBlue,
+                            unfocusedContainerColor = lightBlue
+                        )
+                    )
+
+                    ExposedDropdownMenu(
+                        expanded = dropdownExpanded,
+                        onDismissRequest = { dropdownExpanded = false }
+                    ) {
+                        openVisits.forEach { visit ->
+                            DropdownMenuItem(
+                                text = { Text("${visit.visitorName} - ${visit.reason} (${visit.createdAtText})") },
+                                onClick = {
+                                    selectedIdForExit = visit.id
+                                    dropdownExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+            // BOTÓN REGISTRAR SALIDA (pendiente de histórico)
+            item {
+                OutlinedButton(
+                    onClick = {
+                        val id = selectedIdForExit
+                        if (id == null) {
+                            Toast.makeText(
+                                ctx,
+                                "Primero selecciona una visita pendiente",
+                                Toast.LENGTH_LONG
+                            ).show()
+                            return@OutlinedButton
+                        }
+                        val ts = System.currentTimeMillis()
+                        val tsText =
+                            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+                                .format(Instant.ofEpochMilli(ts).atZone(ZoneId.systemDefault()))
+
+                        scope.launch {
+                            try {
+                                onRegistrarSalida(id, ts, tsText)
+                                Toast.makeText(ctx, "Salida registrada", Toast.LENGTH_LONG).show()
+                                selectedIdForExit = null
+                                openVisits = loadOpenVisits()    // recargar
+                            } catch (e: Throwable) {
+                                Toast.makeText(
+                                    ctx,
+                                    e.message ?: "Error al registrar salida",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(24.dp)
+                ) {
+                    Text("Registrar salida de visita")
+                }
+            }
+
+            item { Spacer(Modifier.height(12.dp)) }
+        }
+    }
+
+    SuccessDialogDual(
+        show = showSuccess,
+        title = "Guardado con éxito",
+        message = "La visita se registró correctamente.",
+        primaryText = "Volver",
+        onPrimary = { showSuccess = false; onBack() },
+        secondaryText = "Continuar registrando",
+        onSecondary = { showSuccess = false }, // solo cierra el diálogo
+        onDismiss = { showSuccess = false }
+    )
+}
