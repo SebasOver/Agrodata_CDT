@@ -56,6 +56,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.softwareganadero.R
 import com.example.softwareganadero.data.AgroDatabase
+import com.example.softwareganadero.dialogs.SuccessDialog
+import com.example.softwareganadero.dialogs.SuccessDialogDual
 import com.example.softwareganadero.domain.BirthRepository
 import kotlinx.coroutines.launch
 
@@ -70,7 +72,8 @@ fun RegistroNacimientosScreen(
     val db: AgroDatabase = remember { AgroDatabase.get(ctx) }
     val birthRepo = remember { BirthRepository(db) }
     val scope = rememberCoroutineScope()
-
+    var saving by rememberSaveable { mutableStateOf(false) }
+    var showSuccess by rememberSaveable { mutableStateOf(false) }
     // timestamps al momento de guardar (no en remember, así capturan la hora real del click)
     fun nowPair(): Pair<Long,String> {
         val millis = System.currentTimeMillis()
@@ -233,6 +236,9 @@ fun RegistroNacimientosScreen(
                         weightTxt.toDoubleOrNull() == null -> { Toast.makeText(ctx, "Peso debe ser numérico", Toast.LENGTH_LONG).show(); return@Button }
                     }
 
+                    if (saving) return@Button
+                    saving = true
+
                     val (millis, text) = nowPair()
                     scope.launch {
                         try {
@@ -248,31 +254,50 @@ fun RegistroNacimientosScreen(
                                 createdAtText = text,
                                 createdAtMillis = millis
                             )
-                            Toast.makeText(ctx, "Guardado", Toast.LENGTH_LONG).show()
-                            // Limpieza del formulario
-                            cowTag = null
-                            calfTag = ""
-                            sex = null
-                            color = ""
-                            weight = ""
-                            colostrum = false
-                            notes = ""
-                            navBack()
+                            showSuccess = true // abrir diálogo de éxito
                         } catch (t: Throwable) {
                             Toast.makeText(ctx, "Error: ${t.message}", Toast.LENGTH_LONG).show()
+                        } finally {
+                            saving = false
                         }
                     }
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(60.dp), // antes 52.dp
+                enabled = !saving && !showSuccess,   // evita dobles envíos mientras el diálogo está visible
+                modifier = Modifier.fillMaxWidth().height(60.dp),
                 shape = RoundedCornerShape(28.dp),
-                contentPadding = PaddingValues(vertical = 20.dp), // tactilidad
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF2E73C8),
-                    contentColor = Color.White
-                )
-            ) { Text("Guardar", fontSize = 16.sp) }
+                contentPadding = PaddingValues(vertical = 20.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E73C8), contentColor = Color.White)
+            ) { Text(if (saving) "Guardando..." else "Guardar", fontSize = 16.sp) }
         }
     }
+    SuccessDialogDual(
+        show = showSuccess,
+        title = "Guardado con éxito",
+        message = "El nacimiento se registró correctamente.",
+        primaryText = "Volver",
+        onPrimary = {
+            // opcional: limpiar lo que quieras antes de salir
+            calfTag = ""
+            sex = null
+            color = ""
+            weight = ""
+            colostrum = false
+            notes = ""
+            showSuccess = false
+            navBack()
+        },
+        secondaryText = "Continuar registrando",
+        onSecondary = {
+            // limpiar para un nuevo registro pero mantener la vaca seleccionada
+            calfTag = ""
+            sex = null
+            color = ""
+            weight = ""
+            colostrum = false
+            notes = ""
+            showSuccess = false
+            // cowTag se conserva
+        },
+        onDismiss = { showSuccess = false }
+    )
 }

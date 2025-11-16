@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -60,6 +61,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.softwareganadero.R
+import com.example.softwareganadero.dialogs.SuccessDialog
+import com.example.softwareganadero.dialogs.SuccessDialogDual
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
@@ -75,7 +78,11 @@ fun EvaluacionesPraderaAguaScreen(
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     val lightBlue = Color(0xFFE6F0FA)
-
+    val indexAgua = 9
+    //Mostrar mensaje confirmacion
+    val listState = rememberLazyListState()
+    var showPraderaSuccess by rememberSaveable { mutableStateOf(false) }
+    var showAguaSuccess by rememberSaveable { mutableStateOf(false) }
     // Estado Pradera
     var kind by rememberSaveable { mutableStateOf("Entrada") }        // Entrada/Salida
     var height by rememberSaveable { mutableStateOf("") }
@@ -105,6 +112,7 @@ fun EvaluacionesPraderaAguaScreen(
         containerColor = Color.White
     ) { inner ->
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(inner)
@@ -218,12 +226,15 @@ fun EvaluacionesPraderaAguaScreen(
                             .format(Instant.ofEpochMilli(ts).atZone(ZoneId.systemDefault()))
                         scope.launch {
                             try {
-                                // Pasa siempre rotation/paddock actuales; si ya estaban fijados, permanecen
                                 onGuardarPradera(kind, rotation, paddock, h, c, ts, tsText)
-                                Toast.makeText(ctx, "Pradera guardada", Toast.LENGTH_LONG).show()
-                                // Solo se fijan al registrar ENTRADA por primera vez
-                                if (kind == "Entrada") entradaFijada = true
                                 height = ""; colorSelected = null
+                                if (kind == "Entrada") {
+                                    entradaFijada = true
+                                    kind = "Salida"
+                                    Toast.makeText(ctx, "Entrada registrada. Continúa con la salida.", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    showPraderaSuccess = true
+                                }
                             } catch (t: Throwable) {
                                 Toast.makeText(ctx, t.message ?: "Error al guardar pradera", Toast.LENGTH_LONG).show()
                             }
@@ -280,8 +291,8 @@ fun EvaluacionesPraderaAguaScreen(
                         scope.launch {
                             try {
                                 onGuardarAgua(a, t.toString(), ts, tsText)
-                                Toast.makeText(ctx, "Agua guardada", Toast.LENGTH_LONG).show()
                                 availability = null; temperature = ""
+                                showAguaSuccess = true
                             } catch (t2: Throwable) {
                                 Toast.makeText(ctx, t2.message ?: "Error al guardar agua", Toast.LENGTH_LONG).show()
                             }
@@ -296,6 +307,36 @@ fun EvaluacionesPraderaAguaScreen(
             item { Spacer(Modifier.height(12.dp)) }
         }
     }
+    SuccessDialogDual(
+        show = showPraderaSuccess,
+        title = "Salida guardada",
+        message = "Ahora registra la evaluación de agua.",
+        primaryText = "Volver",
+        onPrimary = { showPraderaSuccess = false; onBack() },
+        secondaryText = "Continuar registrando",
+        onSecondary = {
+            showPraderaSuccess = false
+            // desplazar a Agua; ajusta el índice del stickyHeader
+            scope.launch { listState.animateScrollToItem(indexAgua) }
+        },
+        onDismiss = { showPraderaSuccess = false }
+    )
+
+// Agua: volver
+    SuccessDialogDual(
+        show = showAguaSuccess,
+        title = "Agua guardada",
+        message = "Se registró correctamente.",
+        primaryText = "Volver",
+        onPrimary = { showAguaSuccess = false; onBack() },
+        secondaryText = "Continuar registrando",
+        onSecondary = {
+            // dejar listo para otro registro de Agua si deseas
+            availability = null; temperature = ""
+            showAguaSuccess = false
+        },
+        onDismiss = { showAguaSuccess = false }
+    )
 }
 
 @Composable

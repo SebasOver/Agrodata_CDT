@@ -27,7 +27,10 @@ import com.example.softwareganadero.R
 import com.example.softwareganadero.data.AgroDatabase
 import com.example.softwareganadero.data.Precipitation
 import com.example.softwareganadero.data.PastureInventory
+import com.example.softwareganadero.dialogs.SuccessDialog
+import com.example.softwareganadero.dialogs.SuccessDialogDual
 import com.example.softwareganadero.domain.PrecipitacionRepository
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
@@ -63,7 +66,8 @@ fun PrecipitacionScreen(
     val sInt = sick.toIntOrNull()
     val total = (hInt ?: 0) + (sInt ?: 0)
     val inventoryValid = lotInt != null && hInt != null && sInt != null
-
+    var showPrecipSuccess by rememberSaveable { mutableStateOf(false) }
+    var showInvSuccess by rememberSaveable { mutableStateOf(false) }
     Scaffold(
         containerColor = Color.White,
         topBar = {
@@ -109,22 +113,16 @@ fun PrecipitacionScreen(
 
             Button(
                 onClick = {
-                    val op = currentOperatorName.trim()
-                    //if (op.isBlank()) {
-                    //Toast.makeText(ctx, "Operario no disponible. Selecciónalo en inicio.", Toast.LENGTH_LONG).show()
-                    //return@Button
-                    //}
                     if (!precipValid || savingPrecip) return@Button
                     savingPrecip = true
                     scope.launch {
                         try {
                             val nowMillis = System.currentTimeMillis()
                             val nowText = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-                                .format(java.time.Instant.ofEpochMilli(nowMillis)
-                                    .atZone(java.time.ZoneId.systemDefault()))
-                            repo.savePrecipitation(precipMm.toDouble(), op, nowText, nowMillis)
-                            Toast.makeText(ctx, "Precipitación guardada", Toast.LENGTH_SHORT).show()
+                                .format(Instant.ofEpochMilli(nowMillis).atZone(ZoneId.systemDefault()))
+                            repo.savePrecipitation(precipMm.toDouble(), currentOperatorName.trim(), nowText, nowMillis)
                             precipMm = ""
+                            showPrecipSuccess = true
                         } catch (e: Exception) {
                             Toast.makeText(ctx, "Error: ${e.message ?: "desconocido"}", Toast.LENGTH_LONG).show()
                         } finally { savingPrecip = false }
@@ -153,14 +151,14 @@ fun PrecipitacionScreen(
             Text("Lote de ganado")
             TextField(
                 value = lot,
-                onValueChange = { s -> if (s.isEmpty() || s.matches(Regex("""\d+"""))) lot = s },
+                onValueChange = { lot = it }, // sin restricción
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                isError = lot.isNotEmpty() && lotInt == null,
-                supportingText = { if (lot.isNotEmpty() && lotInt == null) Text("Número entero") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                 modifier = Modifier.fillMaxWidth(),
                 colors = TextFieldDefaults.colors(focusedContainerColor = lightBlue, unfocusedContainerColor = lightBlue)
             )
+            val lotValid = lot.isNotBlank()
+            val inventoryValid = lotValid && hInt != null && sInt != null
 
             Text("Animales sanos")
             TextField(
@@ -203,10 +201,9 @@ fun PrecipitacionScreen(
 
             Button(
                 onClick = {
-                    val op = currentOperatorName.trim()
                     if (!inventoryValid || savingInv) {
                         if (!inventoryValid) {
-                            Toast.makeText(ctx, "Completa lote, sanos y enfermos con números válidos", Toast.LENGTH_LONG).show()
+                            Toast.makeText(ctx, "Completa lote, sanos y enfermos con datos válidos", Toast.LENGTH_LONG).show()
                         }
                         return@Button
                     }
@@ -216,14 +213,12 @@ fun PrecipitacionScreen(
                             val nowMillis = System.currentTimeMillis()
                             val nowText = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
                                 .format(Instant.ofEpochMilli(nowMillis).atZone(ZoneId.systemDefault()))
-                            repo.savePastureInventory(lotInt!!, hInt!!, sInt!!, total, op, nowText, nowMillis)
-                            Toast.makeText(ctx, "Inventario guardado", Toast.LENGTH_SHORT).show()
+                            repo.savePastureInventory(lotInt ?: 0, hInt!!, sInt!!, total, currentOperatorName.trim(), nowText, nowMillis)
                             lot = ""; healthy = ""; sick = ""
+                            showInvSuccess = true
                         } catch (e: Exception) {
                             Toast.makeText(ctx, "Error: ${e.message ?: "desconocido"}", Toast.LENGTH_LONG).show()
-                        } finally {
-                            savingInv = false
-                        }
+                        } finally { savingInv = false }
                     }
                 },
                 enabled = inventoryValid && !savingInv,
@@ -234,8 +229,32 @@ fun PrecipitacionScreen(
                     contentColor = Color.White
                 )
             ) { Text(if (savingInv) "Guardando..." else "Guardar") }
-
             Spacer(Modifier.height(8.dp))
         }
     }
+// Precipitación: solo continuar hacia inventario
+    SuccessDialogDual(
+        show = showPrecipSuccess,
+        title = "Precipitación guardada",
+        message = "Continúa con el inventario de animales.",
+        primaryText = "Volver", // opcional: si no quieres volver aquí, puedes cambiarlo por "Cerrar"
+        onPrimary = { showPrecipSuccess = false; navBack() },
+        secondaryText = "Continuar registrando",
+        onSecondary = { showPrecipSuccess = false /* opcional: desplazar al inventario si usas LazyColumn */ },
+        onDismiss = { showPrecipSuccess = false }
+    )
+
+// Inventario: permitir volver o registrar otro
+    SuccessDialogDual(
+        show = showInvSuccess,
+        title = "Inventario guardado",
+        message = "Se registró correctamente.",
+        primaryText = "Volver",
+        onPrimary = { showInvSuccess = false; navBack() },
+        secondaryText = "Continuar registrando",
+        onSecondary = {
+            showInvSuccess = false
+        },
+        onDismiss = { showInvSuccess = false }
+    )
 }

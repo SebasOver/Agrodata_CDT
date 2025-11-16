@@ -27,6 +27,7 @@ import com.example.softwareganadero.routes.EvaluacionesPraderaAguaRoute
 import com.example.softwareganadero.routes.PotrerosRoute
 import com.example.softwareganadero.routes.PrecipitacionRoute
 import com.example.softwareganadero.routes.RegistroNacimientosRoute
+import com.example.softwareganadero.routes.SuplementosRoute
 import com.example.softwareganadero.routes.VisitasRoute
 import com.example.softwareganadero.routes.WelcomeRoute
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
@@ -80,11 +81,8 @@ fun AgrodataApp() {
             // Potreros - subrutas
             composable("potreros/precipitacion") {
                 val operador = session.operarioActual.orEmpty()  // o donde lo tengas
-                PrecipitacionRoute(nav = nav, currentOperatorName = operador.orEmpty())
+                PrecipitacionRoute(nav = nav, currentOperatorName = operador)
             }
-
-
-            // Registro nacimientos vía Route (usa operador del VM si ya lo expones)
             composable("potreros/registro_nacimiento") {
                 val operador = session.operarioActual.orEmpty()
                 RegistroNacimientosRoute(
@@ -92,36 +90,15 @@ fun AgrodataApp() {
                     currentOperatorName = operador
                 )
             }
-
             composable("potreros/cercas") { CercasUnificadasRoute(nav) }
-
-
             composable("potreros/deteccion_celos") {
                 DeteccionCelosRoute(onBack = { nav.popBackStack("potreros", inclusive = false) })
             }
-
             composable("potreros/evaluaciones_pradera_agua") {
                 EvaluacionesPraderaAguaRoute(nav = nav) // sin onBack aquí
             }
-            /*
-            // Visitas - subrutas (ajuste de Insumos -> Particulares)
-            composable("visitas/instituciones") {
-                InstitucionesRoute(onBack = { nav.popBackStack("visitas", inclusive = false) })
-            }
-            composable("visitas/particulares") {
-                ParticularesRoute(onBack = { nav.popBackStack("visitas", inclusive = false) })
-            }
+            composable("potreros/suplementos") { SuplementosRoute(nav) }
 
-            // Corrales - subrutas (ajuste a Control sanitario)
-            composable("corrales/alimentacion") {
-                AlimentacionRoute(onBack = { nav.popBackStack("corrales", inclusive = false) })
-            }
-            composable("corrales/registro_animales") {
-                RegistroAnimalesRoute(onBack = { nav.popBackStack("corrales", inclusive = false) })
-            }
-            composable("corrales/control_sanitario") {
-                ControlSanitarioRoute(onBack = { nav.popBackStack("corrales", inclusive = false) })
-            }*/
         }
     }
 }

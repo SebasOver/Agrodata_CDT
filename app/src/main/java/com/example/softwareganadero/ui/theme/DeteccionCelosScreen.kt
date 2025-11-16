@@ -46,7 +46,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.softwareganadero.R
+import com.example.softwareganadero.dialogs.SuccessDialogDual
 import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.ZoneId
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -65,7 +68,8 @@ fun DeteccionCelosScreen(
     var cowExpanded by rememberSaveable { mutableStateOf(false) }
     var cowSelected by rememberSaveable { mutableStateOf<String?>(null) }
     var notes by rememberSaveable { mutableStateOf("") }
-
+    var saving by rememberSaveable { mutableStateOf(false) }
+    var showSuccess by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         cows = try { loadCows() } catch (_: Throwable) { emptyList() }
     }
@@ -142,7 +146,6 @@ fun DeteccionCelosScreen(
 
             Button(
                 onClick = {
-                    // Validación
                     val cow = if (inHeat) cowSelected?.trim().orEmpty() else null
                     val n = notes.trim()
                     if (inHeat) {
@@ -156,29 +159,45 @@ fun DeteccionCelosScreen(
                             return@Button
                         }
                     }
-                    // Timestamp en el momento de guardar
+                    if (saving) return@Button
+                    saving = true
+
                     val ts = System.currentTimeMillis()
                     val tsText = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-                        .format(java.time.Instant.ofEpochMilli(ts).atZone(java.time.ZoneId.systemDefault()))
+                        .format(Instant.ofEpochMilli(ts).atZone(ZoneId.systemDefault()))
                     scope.launch {
                         try {
                             onGuardar(inHeat, cow, if (n.isEmpty()) null else n, ts, tsText)
-                            Toast.makeText(ctx, "Guardado", Toast.LENGTH_LONG).show()
-                            // Limpieza
+                            // Limpieza tras guardar: este caso sí limpia el dropdown
                             inHeat = false
                             cowSelected = null
                             notes = ""
+                            showSuccess = true
                         } catch (t: Throwable) {
-                            Toast.makeText(ctx, "Error: ${t.message}", Toast.LENGTH_LONG).show()
+                            Toast.makeText(ctx, t.message ?: "Error al guardar", Toast.LENGTH_LONG).show()
+                        } finally {
+                            saving = false
                         }
                     }
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
+                enabled = !saving && !showSuccess,
+                modifier = Modifier.fillMaxWidth().height(48.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E73C8), contentColor = Color.White),
                 shape = RoundedCornerShape(24.dp)
-            ) { Text("Guardar") }
+            ) { Text(if (saving) "Guardando..." else "Guardar") }
         }
     }
+    SuccessDialogDual(
+        show = showSuccess,
+        title = "Guardado con éxito",
+        message = "La detección de celo se registró correctamente.",
+        primaryText = "Volver",
+        onPrimary = { showSuccess = false; onBack() },
+        secondaryText = "Continuar registrando",
+        onSecondary = {
+            // ya se limpió al guardar; solo cierra el diálogo
+            showSuccess = false
+        },
+        onDismiss = { showSuccess = false }
+    )
 }

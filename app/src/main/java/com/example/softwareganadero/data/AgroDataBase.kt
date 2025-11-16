@@ -15,6 +15,7 @@ import com.example.softwareganadero.dao.PastureFenceLogDao
 import com.example.softwareganadero.dao.PastureInventoryDAO
 import com.example.softwareganadero.dao.PrecipitationDAO
 import com.example.softwareganadero.dao.ProducerDao
+import com.example.softwareganadero.dao.SupplementDao
 import com.example.softwareganadero.dao.UserDao
 import com.example.softwareganadero.dao.WaterEvaluationDao
 
@@ -23,9 +24,9 @@ import com.example.softwareganadero.dao.WaterEvaluationDao
     entities = [
         Producer::class, User::class, FemaleCow::class, BirthRecord::class,
         Precipitation::class, PastureInventory::class,
-        HeatDetection::class, PastureEvaluation::class, WaterEvaluation::class, PastureFenceLog::class,
+        HeatDetection::class, PastureEvaluation::class, WaterEvaluation::class, PastureFenceLog::class,Supplement::class,
     ],
-    version = 18, // subir desde 9
+    version = 20, // subir desde 9
     exportSchema = true
 )    abstract class AgroDatabase : RoomDatabase() {
     abstract fun producerDao(): ProducerDao
@@ -40,6 +41,9 @@ import com.example.softwareganadero.dao.WaterEvaluationDao
 
     abstract fun waterEvaluationDao(): WaterEvaluationDao
     abstract fun pastureFenceLogDao(): PastureFenceLogDao
+
+    abstract fun supplementDao(): SupplementDao
+
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -359,6 +363,51 @@ import com.example.softwareganadero.dao.WaterEvaluationDao
                 //db.execSQL("CREATE INDEX IF NOT EXISTS index_pasture_evaluations_created_at ON pasture_evaluations(created_at)")
             }
         }
+        val MIGRATION_18_19 = object : Migration(18, 19) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+            CREATE TABLE IF NOT EXISTS supplements(
+              id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+              rotation TEXT NOT NULL,
+              lot INTEGER NOT NULL,
+              animals_count INTEGER NOT NULL,
+              name TEXT NOT NULL,
+              quantity REAL NOT NULL,
+              created_at INTEGER NOT NULL,
+              created_at_text TEXT NOT NULL
+            )
+        """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_supplements_rotation ON supplements(rotation)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_supplements_lot ON supplements(lot)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_supplements_created_at ON supplements(created_at)")
+            }
+        }
+        val MIGRATION_19_20 = object : Migration(19, 20) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+            CREATE TABLE IF NOT EXISTS supplements_new(
+              id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+              rotation TEXT NOT NULL,
+              lot TEXT NOT NULL,                 -- ahora TEXT
+              animals_count INTEGER NOT NULL,
+              name TEXT NOT NULL,
+              quantity REAL NOT NULL,
+              created_at INTEGER NOT NULL,
+              created_at_text TEXT NOT NULL
+            )
+        """.trimIndent())
+                db.execSQL("""
+            INSERT INTO supplements_new (id, rotation, lot, animals_count, name, quantity, created_at, created_at_text)
+            SELECT id, rotation, CAST(lot AS TEXT), animals_count, name, quantity, created_at, created_at_text
+            FROM supplements
+        """.trimIndent())
+                db.execSQL("DROP TABLE supplements")
+                db.execSQL("ALTER TABLE supplements_new RENAME TO supplements")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_supplements_rotation ON supplements(rotation)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_supplements_lot ON supplements(lot)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_supplements_created_at ON supplements(created_at)")
+            }
+        }
         @Volatile private var INSTANCE: AgroDatabase? = null
         /*fun get(context: Context): AgroDatabase =
             INSTANCE ?: synchronized(this) {
@@ -431,7 +480,7 @@ import com.example.softwareganadero.dao.WaterEvaluationDao
                     )
                         .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
                             MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16,
-                            MIGRATION_16_17, MIGRATION_17_18)
+                            MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20,)
                         .addCallback(object : RoomDatabase.Callback() {
                             override fun onCreate(db: SupportSQLiteDatabase) {
                                 db.execSQL("""
