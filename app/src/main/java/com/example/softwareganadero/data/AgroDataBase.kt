@@ -19,8 +19,10 @@ import com.example.softwareganadero.dao.SupplementDao
 import com.example.softwareganadero.dao.UserDao
 import com.example.softwareganadero.dao.WaterEvaluationDao
 import com.example.softwareganadero.dao.corralesDao.HealthControlDao
+import com.example.softwareganadero.dao.corralesDao.PalpationDao
 import com.example.softwareganadero.dao.corralesDao.WeighingDao
 import com.example.softwareganadero.data.corralesData.HealthControl
+import com.example.softwareganadero.data.corralesData.Palpation
 import com.example.softwareganadero.data.corralesData.Weighing
 
 @TypeConverters(UserRoleConverter::class) // habilita conversor enum<->TEXT [web:68]
@@ -29,9 +31,9 @@ import com.example.softwareganadero.data.corralesData.Weighing
         Producer::class, User::class, FemaleCow::class, BirthRecord::class,
         Precipitation::class, PastureInventory::class,
         HeatDetection::class, PastureEvaluation::class, WaterEvaluation::class, PastureFenceLog::class,Supplement::class,
-        HealthControl::class, Weighing::class,
+        HealthControl::class, Weighing::class, Palpation::class,
     ],
-    version = 22, // subir desde 9
+    version = 23, // subir desde 9
     exportSchema = true
 )    abstract class AgroDatabase : RoomDatabase() {
     abstract fun producerDao(): ProducerDao
@@ -47,6 +49,7 @@ import com.example.softwareganadero.data.corralesData.Weighing
     abstract fun supplementDao(): SupplementDao
     abstract fun healthControlDao(): HealthControlDao
     abstract fun weighingDao(): WeighingDao
+    abstract fun palpationDao(): PalpationDao
 
 
 
@@ -450,6 +453,22 @@ import com.example.softwareganadero.data.corralesData.Weighing
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_weighings_animal_number ON weighings(animal_number)")
             }
         }
+        val MIGRATION_22_23 = object : Migration(22, 23) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+            CREATE TABLE IF NOT EXISTS palpations(
+              id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+              animal_number TEXT NOT NULL,
+              pregnancy_days INTEGER NOT NULL,
+              observations TEXT,
+              created_at INTEGER NOT NULL,
+              created_at_text TEXT NOT NULL
+            )
+        """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_palpations_created_at ON palpations(created_at)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_palpations_animal_number ON palpations(animal_number)")
+            }
+        }
         @Volatile private var INSTANCE: AgroDatabase? = null
         /*fun get(context: Context): AgroDatabase =
             INSTANCE ?: synchronized(this) {
@@ -523,7 +542,7 @@ import com.example.softwareganadero.data.corralesData.Weighing
                         .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
                             MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16,
                             MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20,MIGRATION_20_21,MIGRATION_21_22,
-                            )
+                            MIGRATION_22_23)
                         .addCallback(object : RoomDatabase.Callback() {
                             override fun onCreate(db: SupportSQLiteDatabase) {
                                 db.execSQL("""
