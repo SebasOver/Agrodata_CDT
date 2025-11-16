@@ -1,6 +1,5 @@
 package com.example.softwareganadero.ui.theme
 
-import android.net.Uri
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -8,10 +7,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
@@ -34,7 +29,7 @@ import com.example.softwareganadero.routes.corralesRoutes.ControlSanitarioRoute
 import com.example.softwareganadero.routes.corralesRoutes.PalpacionRoute
 import com.example.softwareganadero.routes.corralesRoutes.PesajeRoute
 import com.example.softwareganadero.routes.corralesRoutes.TriageRoute
-import com.example.softwareganadero.routes.institucionesRoutes.InstitucionesRoute
+import com.example.softwareganadero.routes.institucionesRoutes.VisitasInstitucionesParticularesRoute
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
 
@@ -109,8 +104,9 @@ fun AgrodataApp() {
             composable("corrales/palpacion") { PalpacionRoute(nav) }
             composable("corrales/triage") { TriageRoute(nav) }
             // Visitas - subrutas
-            composable("visitas/instituciones"){ InstitucionesRoute(nav) }
-
+            composable("visitas/instituciones_particulares") {
+                VisitasInstitucionesParticularesRoute(nav)
+            }
         }
     }
 }

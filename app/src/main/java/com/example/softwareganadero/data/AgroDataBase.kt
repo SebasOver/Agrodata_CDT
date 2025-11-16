@@ -23,11 +23,13 @@ import com.example.softwareganadero.dao.corralesDao.PalpationDao
 import com.example.softwareganadero.dao.corralesDao.TriageDao
 import com.example.softwareganadero.dao.corralesDao.WeighingDao
 import com.example.softwareganadero.dao.visitasDao.InstitutionDao
+import com.example.softwareganadero.dao.visitasDao.ParticularDao
 import com.example.softwareganadero.data.corralesData.HealthControl
 import com.example.softwareganadero.data.corralesData.Palpation
 import com.example.softwareganadero.data.corralesData.TriageRecord
 import com.example.softwareganadero.data.corralesData.Weighing
 import com.example.softwareganadero.data.visitasData.InstitutionRecord
+import com.example.softwareganadero.data.visitasData.ParticularRecord
 
 @TypeConverters(UserRoleConverter::class) // habilita conversor enum<->TEXT [web:68]
 @Database(
@@ -35,9 +37,10 @@ import com.example.softwareganadero.data.visitasData.InstitutionRecord
         Producer::class, User::class, FemaleCow::class, BirthRecord::class,
         Precipitation::class, PastureInventory::class,
         HeatDetection::class, PastureEvaluation::class, WaterEvaluation::class, PastureFenceLog::class,Supplement::class,
-        HealthControl::class, Weighing::class, Palpation::class, TriageRecord::class, InstitutionRecord::class,
+        HealthControl::class, Weighing::class, Palpation::class, TriageRecord::class, InstitutionRecord::class, ParticularRecord::class,
+
     ],
-    version = 25, // subir desde 9
+    version = 26, // subir desde 9
     exportSchema = true
 )    abstract class AgroDatabase : RoomDatabase() {
     abstract fun producerDao(): ProducerDao
@@ -56,7 +59,7 @@ import com.example.softwareganadero.data.visitasData.InstitutionRecord
     abstract fun palpationDao(): PalpationDao
     abstract fun triageDao(): TriageDao
     abstract fun institutionDao(): InstitutionDao
-
+    abstract fun particularDao(): ParticularDao
 
 
     companion object {
@@ -521,6 +524,34 @@ import com.example.softwareganadero.data.visitasData.InstitutionRecord
                 )
             }
         }
+        val MIGRATION_25_26 = object : Migration(25, 26) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    """
+            CREATE TABLE IF NOT EXISTS `particular_records` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `visitor_name` TEXT NOT NULL,
+                `reason` TEXT NOT NULL,
+                `notes` TEXT,
+                `created_at` INTEGER NOT NULL,
+                `created_at_text` TEXT NOT NULL,
+                `closed_at` INTEGER,
+                `closed_at_text` TEXT
+            )
+            """.trimIndent()
+                )
+
+                // indices que Room espera por la anotación @Entity(indices = ...)
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_particular_records_created_at` " +
+                            "ON `particular_records`(`created_at`)"
+                )
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_particular_records_visitor_name` " +
+                            "ON `particular_records`(`visitor_name`)"
+                )
+            }
+        }
         @Volatile private var INSTANCE: AgroDatabase? = null
         fun get(context: Context): AgroDatabase =
             INSTANCE ?: synchronized(this) {
@@ -536,7 +567,7 @@ import com.example.softwareganadero.data.visitasData.InstitutionRecord
                         .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
                             MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16,
                             MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20,MIGRATION_20_21,MIGRATION_21_22,
-                            MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25)
+                            MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26,)
                         .addCallback(object : RoomDatabase.Callback() {
                             override fun onCreate(db: SupportSQLiteDatabase) {
                                 db.execSQL("""

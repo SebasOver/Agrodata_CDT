@@ -48,8 +48,7 @@ fun VisitasScreen(
     LaunchedEffect(Unit) { sys.setSystemBarsColor(Color.White, darkIcons = true) }
 
     val opciones = listOf(
-        "Instituciones" to "visitas/instituciones",
-        "Particulares" to "visitas/particulares" // antes: Insumos
+        "Instituciones y particulares" to "visitas/instituciones_particulares",
     )
 
     Scaffold(
