@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import com.example.softwareganadero.data.BirthRecord
 import com.example.softwareganadero.data.visitasData.ParticularRecord
 
 @Dao
@@ -21,4 +22,6 @@ interface ParticularDao {
                 "WHERE id = :id"
     )
     suspend fun closeVisit(id: Long, closedAt: Long, closedAtText: String): Int
+    @Query("SELECT * FROM particular_records ORDER BY created_at_text ASC")
+    suspend fun getAll(): List<ParticularRecord>
 }

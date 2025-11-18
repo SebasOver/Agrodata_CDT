@@ -98,7 +98,7 @@ fun AdminExportScreen(
             Spacer(Modifier.height(16.dp))
             Text(
                 "Por ahora puedes enviar el reporte diario " +
-                        "con toda la información registrada en la base de datos."
+                        "con toda la información registrada."
             )
             Spacer(Modifier.height(24.dp))
             Button(onClick = {
@@ -117,6 +117,12 @@ fun AdminExportScreen(
                         exporter.exportBirthRecordsCsv()
                         exporter.exportHeatDetectionsCsv()
                         exporter.exportCropsCsv()
+                        exporter.exportHealthControlCsv()
+                        exporter.exportPalpationsCsv()
+                        exporter.exportTriageCsv()
+                        exporter.exportWeighingsCsv()
+                        exporter.exportInstitutionVisitsCsv()
+                        exporter.exportParticularVisitsCsv()
                         // ... y los que falten de otras vistas
 
                         // Comprimir toda Agrodata en un solo ZIP
@@ -127,7 +133,7 @@ fun AdminExportScreen(
                             file = zip,
                             to = "johansebastiantarazonadiaz@gmail.com",
                             subject = "Reporte diario Agrodata",
-                            body = "Adjunto encontrarás un ZIP con las carpetas por vista y sus tablas en CSV."
+                            body = "Adjunto encontrarás un ZIP con los diferentes reportes del CDT."
                         )
 
                         showSuccess = true

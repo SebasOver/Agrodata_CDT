@@ -11,6 +11,6 @@ interface WeighingDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(entity: Weighing): Long
 
-    @Query("SELECT * FROM weighings ORDER BY created_at DESC")
+    @Query("SELECT * FROM weighings ORDER BY created_at_text ASC")
     suspend fun getAll(): List<Weighing>
 }

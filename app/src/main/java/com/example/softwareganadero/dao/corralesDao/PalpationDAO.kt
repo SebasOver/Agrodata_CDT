@@ -11,6 +11,6 @@ interface PalpationDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(entity: Palpation): Long
 
-    @Query("SELECT * FROM palpations ORDER BY created_at DESC")
+    @Query("SELECT * FROM palpations ORDER BY created_at_text ASC")
     suspend fun getAll(): List<Palpation>
 }

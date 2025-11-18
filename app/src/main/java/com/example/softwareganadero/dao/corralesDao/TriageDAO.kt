@@ -11,6 +11,6 @@ interface TriageDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(entity: TriageRecord): Long
 
-    @Query("SELECT * FROM triage_records ORDER BY created_at DESC")
+    @Query("SELECT * FROM triage_records ORDER BY created_at_text ASC")
     suspend fun getAll(): List<TriageRecord>
 }

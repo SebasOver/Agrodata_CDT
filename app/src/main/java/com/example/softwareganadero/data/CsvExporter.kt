@@ -18,12 +18,13 @@ import kotlin.text.append
 class CsvExporter(
     private val context: Context,
     private val repository: AgroRepository,
-    private val io: CoroutineDispatcher = Dispatchers.IO
+    private val io: CoroutineDispatcher = Dispatchers.IO,
+
 ) {
+    private val SEP = ';'
+    private fun yesNo(value: Boolean): String = if (value) "Si" else "No"
 
-    private fun yesNo(value: Boolean): String = if (value) "Sí" else "No"
-
-    private fun esc(s: String): String = "\"" + s.replace("\"", "\"\"") + "\""
+    private fun esc(s: String): String = s.replace("\"", "\"\"")
 
     private fun dirAgrodata(): File {
         val docs = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
@@ -59,6 +60,7 @@ class CsvExporter(
         }
     }
 
+    // --- POTREROS ---
     // 1) Precipitaciones
     suspend fun exportPrecipitationsCsv(
         fileName: String = "precipitaciones.csv"
@@ -69,9 +71,14 @@ class CsvExporter(
 
         FileWriter(file, false).use { fw ->
             BufferedWriter(fw).use { bw ->
-                bw.appendLine("Fecha,Milímetros")
+                bw.appendLine(
+                    listOf(
+                        "Fecha",
+                        "Milimetros",
+                    ).joinToString(SEP.toString())
+                )
                 data.forEach { p ->
-                    bw.append(esc(p.createdAtText)).append(',')
+                    bw.append(esc(p.createdAtText)).append(SEP)
                         .append(p.amountMm.toString())
                         .append('\n')
                 }
@@ -90,12 +97,20 @@ class CsvExporter(
 
         FileWriter(file, false).use { fw ->
             BufferedWriter(fw).use { bw ->
-                bw.appendLine("Fecha,Lote,Sanas,Enfermas,Total")
+                bw.appendLine(
+                    listOf(
+                        "Fecha",
+                        "Lote",
+                        "Sanas",
+                        "Enfermas",
+                        "Total"
+                    ).joinToString(SEP.toString())
+                )
                 data.forEach { inv ->
-                    bw.append(esc(inv.createdAtText)).append(',')
-                        .append(inv.lot.toString()).append(',')
-                        .append(inv.healthy.toString()).append(',')
-                        .append(inv.sick.toString()).append(',')
+                    bw.append(esc(inv.createdAtText)).append(SEP)
+                        .append(inv.lot.toString()).append(SEP)
+                        .append(inv.healthy.toString()).append(SEP)
+                        .append(inv.sick.toString()).append(SEP)
                         .append(inv.total.toString())
                         .append('\n')
                 }
@@ -114,14 +129,24 @@ class CsvExporter(
 
         FileWriter(file, false).use { fw ->
             BufferedWriter(fw).use { bw ->
-                bw.appendLine("Fecha,Rotación,Potrero,Altura entrada,Altura salida,Color entrada,Color salida")
+                bw.appendLine(
+                    listOf(
+                        "Fecha",
+                        "Rotacion",
+                        "Potrero",
+                        "Altura entrada",
+                        "Altura salida",
+                        "Color entrada",
+                        "Color salida"
+                    ).joinToString(SEP.toString())
+                )
                 data.forEach { ev ->
-                    bw.append(esc(ev.createdAtText)).append(',')
-                        .append(esc(ev.rotation ?: "")).append(',')
-                        .append(esc(ev.paddock ?: "")).append(',')
-                        .append(esc(ev.heightEntry ?: "")).append(',')
-                        .append(esc(ev.heightExit ?: "")).append(',')
-                        .append(esc(ev.colorEntry ?: "")).append(',')
+                    bw.append(esc(ev.createdAtText)).append(SEP)
+                        .append(esc(ev.rotation ?: "")).append(SEP)
+                        .append(esc(ev.paddock ?: "")).append(SEP)
+                        .append(esc(ev.heightEntry ?: "")).append(SEP)
+                        .append(esc(ev.heightExit ?: "")).append(SEP)
+                        .append(esc(ev.colorEntry ?: "")).append(SEP)
                         .append(esc(ev.colorExit ?: ""))
                         .append('\n')
                 }
@@ -140,10 +165,16 @@ class CsvExporter(
 
         FileWriter(file, false).use { fw ->
             BufferedWriter(fw).use { bw ->
-                bw.appendLine("Fecha,Disponibilidad,Temperatura (°C)")
+                bw.appendLine(
+                    listOf(
+                        "Fecha",
+                        "Disponibilidad",
+                        "Temperatura(C)",
+                    ).joinToString(SEP.toString())
+                )
                 data.forEach { w ->
-                    bw.append(esc(w.createdAtText)).append(',')
-                        .append(esc(w.availability)).append(',')
+                    bw.append(esc(w.createdAtText)).append(SEP)
+                        .append(esc(w.availability)).append(SEP)
                         .append(w.temperature.toString())
                         .append('\n')
                 }
@@ -162,12 +193,20 @@ class CsvExporter(
 
         FileWriter(file, false).use { fw ->
             BufferedWriter(fw).use { bw ->
-                bw.appendLine("Fecha,Rotación,Potrero,Volteos,Observaciones")
+                bw.appendLine(
+                    listOf(
+                        "Fecha",
+                        "Rotacion",
+                        "Potrero",
+                        "Volteos",
+                        "Observaciones"
+                    ).joinToString(SEP.toString())
+                )
                 data.forEach { f ->
-                    bw.append(esc(f.createdAtText)).append(',')
-                        .append(esc(f.rotacion)).append(',')
-                        .append(esc(f.potrero)).append(',')
-                        .append(esc(f.volteos)).append(',')
+                    bw.append(esc(f.createdAtText)).append(SEP)
+                        .append(esc(f.rotacion)).append(SEP)
+                        .append(esc(f.potrero)).append(SEP)
+                        .append(esc(f.volteos)).append(SEP)
                         .append(f.notes?.let(::esc) ?: "")
                         .append('\n')
                 }
@@ -186,13 +225,22 @@ class CsvExporter(
 
         FileWriter(file, false).use { fw ->
             BufferedWriter(fw).use { bw ->
-                bw.appendLine("Fecha,Rotación,Lote,Número animales,Nombre suplemento,Cantidad")
+                bw.appendLine(
+                    listOf(
+                        "Fecha",
+                        "Rotacion",
+                        "Lote",
+                        "Numero animales",
+                        "Nombre suplemento",
+                        "Cantidad"
+                    ).joinToString(SEP.toString())
+                )
                 data.forEach { s ->
-                    bw.append(esc(s.createdAtText)).append(',')
-                        .append(esc(s.rotation)).append(',')
-                        .append(esc(s.lot)).append(',')
-                        .append(s.animalsCount.toString()).append(',')
-                        .append(esc(s.name)).append(',')
+                    bw.append(esc(s.createdAtText)).append(SEP)
+                        .append(esc(s.rotation)).append(SEP)
+                        .append(esc(s.lot)).append(SEP)
+                        .append(s.animalsCount.toString()).append(SEP)
+                        .append(esc(s.name)).append(SEP)
                         .append(s.quantity.toString())
                         .append('\n')
                 }
@@ -211,15 +259,26 @@ class CsvExporter(
 
         FileWriter(file, false).use { fw ->
             BufferedWriter(fw).use { bw ->
-                bw.appendLine("Fecha,Vaca,Cría,Sexo,Color,Peso,Colostro (Sí/No),Observaciones")
+                bw.appendLine(
+                    listOf(
+                        "Fecha",
+                        "Vaca",
+                        "Cria",
+                        "Sexo",
+                        "Color",
+                        "Peso",
+                        "Calostro(Si/No)",
+                        "Observaciones"
+                    ).joinToString(SEP.toString())
+                )
                 data.forEach { b ->
-                    bw.append(esc(b.createdAtText)).append(',')
-                        .append(esc(b.cowTag)).append(',')
-                        .append(esc(b.calfTag)).append(',')
-                        .append(esc(b.sex)).append(',')
-                        .append(esc(b.color ?: "")).append(',')
-                        .append(esc(b.weight ?: "")).append(',')
-                        .append(esc(yesNo(b.colostrum))).append(',')
+                    bw.append(esc(b.createdAtText)).append(SEP)
+                        .append(esc(b.cowTag)).append(SEP)
+                        .append(esc(b.calfTag)).append(SEP)
+                        .append(esc(b.sex)).append(SEP)
+                        .append(esc(b.color ?: "")).append(SEP)
+                        .append(esc(b.weight ?: "")).append(SEP)
+                        .append(esc(yesNo(b.colostrum))).append(SEP)
                         .append(b.notes?.let(::esc) ?: "")
                         .append('\n')
                 }
@@ -238,11 +297,18 @@ class CsvExporter(
 
         FileWriter(file, false).use { fw ->
             BufferedWriter(fw).use { bw ->
-                bw.appendLine("Fecha,En celo (Sí/No),Vaca,Observaciones")
+                bw.appendLine(
+                    listOf(
+                        "Fecha",
+                        "Celo(Si/No)",
+                        "Vaca",
+                        "Observaciones",
+                    ).joinToString(SEP.toString())
+                )
                 data.forEach { h ->
-                    bw.append(esc(h.createdAtText)).append(',')
-                        .append(esc(yesNo(h.inHeat))).append(',')
-                        .append(esc(h.cowTag ?: "")).append(',')
+                    bw.append(esc(h.createdAtText)).append(SEP)
+                        .append(esc(yesNo(h.inHeat))).append(SEP)
+                        .append(esc(h.cowTag ?: "")).append(SEP)
                         .append(h.notes?.let(::esc) ?: "")
                         .append('\n')
                 }
@@ -250,8 +316,142 @@ class CsvExporter(
         }
         file
     }
+    // --- CORRALES ---
+    suspend fun exportHealthControlCsv(
+        fileName: String = "control_salud.csv"
+    ): File = withContext(io) {
+        val dir = dirCorrales()
+        val file = File(dir, fileName)
+        val data = repository.listHealthControls()   // DAO: SELECT * FROM health_control ORDER BY created_at_text ASC
 
-    // 9) Cultivos
+        FileWriter(file, false).use { fw ->
+            BufferedWriter(fw).use { bw ->
+                bw.appendLine(
+                    listOf(
+                        "Fecha",
+                        "Tratamiento",
+                        "Animal",
+                        "Medicamentos",
+                        "Dosis",
+                        "Cantidad",
+                        "Observaciones"
+                    ).joinToString(SEP.toString())
+                )
+                data.forEach { h ->
+                    bw.append(esc(h.createdAtText)).append(SEP)
+                        .append(esc(h.treatment)).append(SEP)
+                        .append(esc(h.animal)).append(SEP)
+                        .append(esc(h.medicines)).append(SEP)
+                        .append(esc(h.dose)).append(SEP)
+                        .append(esc(h.quantity)).append(SEP)
+                        .append(h.observations?.let(::esc) ?: "")
+                        .append('\n')
+                }
+            }
+        }
+        file
+    }
+
+    // B) Palpaciones
+    suspend fun exportPalpationsCsv(
+        fileName: String = "palpaciones.csv"
+    ): File = withContext(io) {
+        val dir = dirCorrales()
+        val file = File(dir, fileName)
+        val data = repository.listPalpations()   // DAO: SELECT * FROM palpations ORDER BY created_at_text ASC
+
+        FileWriter(file, false).use { fw ->
+            BufferedWriter(fw).use { bw ->
+                bw.appendLine(
+                    listOf(
+                        "Fecha",
+                        "Numero animal",
+                        "Dias gestacion",
+                        "Observaciones",
+                    ).joinToString(SEP.toString())
+                )
+                data.forEach { p ->
+                    bw.append(esc(p.createdAtText)).append(SEP)
+                        .append(esc(p.animalNumber)).append(SEP)
+                        .append(p.pregnancyDays.toString()).append(SEP)
+                        .append(p.observations?.let(::esc) ?: "")
+                        .append('\n')
+                }
+            }
+        }
+        file
+    }
+
+    // C) Triage
+    suspend fun exportTriageCsv(
+        fileName: String = "triage.csv"
+    ): File = withContext(io) {
+        val dir = dirCorrales()
+        val file = File(dir, fileName)
+        val data = repository.listTriageRecords()   // DAO: SELECT * FROM triage_records ORDER BY created_at_text ASC
+
+        FileWriter(file, false).use { fw ->
+            BufferedWriter(fw).use { bw ->
+                bw.appendLine(
+                    listOf(
+                        "Fecha",
+                        "Numero animal",
+                        "Temperatura",
+                        "Locomocion",
+                        "Color mucosa",
+                        "Observaciones"
+                    ).joinToString(SEP.toString())
+                )
+                data.forEach { t ->
+                    bw.append(esc(t.createdAtText)).append(SEP)
+                        .append(esc(t.animalNumber)).append(SEP)
+                        .append(t.temperature.toString()).append(SEP)
+                        .append(esc(t.locomotion)).append(SEP)
+                        .append(esc(t.mucosaColor)).append(SEP)
+                        .append(t.observations?.let(::esc) ?: "")
+                        .append('\n')
+                }
+            }
+        }
+        file
+    }
+
+    // D) Pesajes
+    suspend fun exportWeighingsCsv(
+        fileName: String = "pesajes.csv"
+    ): File = withContext(io) {
+        val dir = dirCorrales()
+        val file = File(dir, fileName)
+        val data = repository.listWeighings()   // DAO: SELECT * FROM weighings ORDER BY created_at_text ASC
+
+        FileWriter(file, false).use { fw ->
+            BufferedWriter(fw).use { bw ->
+                bw.appendLine(
+                    listOf(
+                        "Fecha",
+                        "Sexo",
+                        "Numero animal",
+                        "Raza",
+                        "Color",
+                        "Condicion corporal",
+                        "Observaciones",
+                    ).joinToString(SEP.toString())
+                )
+                data.forEach { w ->
+                    bw.append(esc(w.createdAtText)).append(SEP)
+                        .append(esc(w.sex)).append(SEP)
+                        .append(esc(w.animalNumber)).append(SEP)
+                        .append(esc(w.breed)).append(SEP)
+                        .append(esc(w.color)).append(SEP)
+                        .append(esc(w.bodyCondition)).append(SEP)
+                        .append(w.observations?.let(::esc) ?: "")
+                        .append('\n')
+                }
+            }
+        }
+        file
+    }
+    // --- CULTIVOS ---
     suspend fun exportCropsCsv(
         fileName: String = "cultivos.csv"
     ): File = withContext(io) {
@@ -261,14 +461,91 @@ class CsvExporter(
 
         FileWriter(file, false).use { fw ->
             BufferedWriter(fw).use { bw ->
-                bw.appendLine("Fecha,Lote,Especie,Plagas (Sí/No),Enfermedades (Sí/No),Observaciones")
+                bw.appendLine(
+                    listOf(
+                        "Fecha",
+                        "Lote",
+                        "Especie",
+                        "Plagas (Si/No)",
+                        "Enfermedades (Si/No)",
+                        "Observaciones"
+                    ).joinToString(SEP.toString())
+                )
                 data.forEach { c ->
-                    bw.append(esc(c.createdAtText)).append(',')
-                        .append(esc(c.lot)).append(',')
-                        .append(esc(c.species)).append(',')
-                        .append(esc(yesNo(c.hasPests))).append(',')
-                        .append(esc(yesNo(c.hasDiseases))).append(',')
+                    bw.append(esc(c.createdAtText)).append(SEP)
+                        .append(esc(c.lot)).append(SEP)
+                        .append(esc(c.species)).append(SEP)
+                        .append(esc(yesNo(c.hasPests))).append(SEP)
+                        .append(esc(yesNo(c.hasDiseases))).append(SEP)
                         .append(c.notes?.let(::esc) ?: "")
+                        .append('\n')
+                }
+            }
+        }
+        file
+    }
+    // --- VISITAS ---
+    suspend fun exportInstitutionVisitsCsv(
+        fileName: String = "visitas_institucionales.csv"
+    ): File = withContext(io) {
+        val dir = dirVisitas()
+        val file = File(dir, fileName)
+        val data = repository.listInstitutionRecords()   // ver sección 2
+
+        FileWriter(file, false).use { fw ->
+            BufferedWriter(fw).use { bw ->
+                bw.appendLine(
+                    listOf(
+                        "Fecha entrada",
+                        "Hora salida",
+                        "Nombre visitante",
+                        "Motivo",
+                        "Observaciones",
+                    ).joinToString(SEP.toString())
+                )
+
+                data.forEach { r ->
+                    val fechaEntrada = r.createdAtText           // texto que ya generas al guardar
+                    val horaSalida = r.closedAtText ?: ""        // puede ser null
+                    bw.append(esc(fechaEntrada)).append(SEP)
+                        .append(esc(horaSalida)).append(SEP)
+                        .append(esc(r.visitorName)).append(SEP)
+                        .append(esc(r.reason)).append(SEP)
+                        .append(r.notes?.let(::esc) ?: "")
+                        .append('\n')
+                }
+            }
+        }
+        file
+    }
+
+    // B) Visitas particulares
+    suspend fun exportParticularVisitsCsv(
+        fileName: String = "visitas_particulares.csv"
+    ): File = withContext(io) {
+        val dir = dirVisitas()
+        val file = File(dir, fileName)
+        val data = repository.listParticularRecords()    // ver sección 2
+
+        FileWriter(file, false).use { fw ->
+            BufferedWriter(fw).use { bw ->
+                bw.appendLine(
+                    listOf(
+                        "Fecha entrada",
+                        "Hora salida",
+                        "Nombre visitante",
+                        "Motivo",
+                        "Observaciones",
+                    ).joinToString(SEP.toString())
+                )
+
+                data.forEach { r ->
+                    val fechaEntrada = r.createdAtText
+                    val horaSalida = r.closedAtText ?: ""
+                    bw.append(esc(fechaEntrada)).append(SEP)
+                        .append(esc(r.visitorName)).append(SEP)
+                        .append(esc(r.reason)).append(SEP)
+                        .append(r.notes?.let(::esc) ?: "")
                         .append('\n')
                 }
             }
@@ -277,7 +554,7 @@ class CsvExporter(
     }
 
     suspend fun zipAgrodataDirectory(
-        zipName: String = "reporte_${System.currentTimeMillis()}.zip"
+        zipName: String = "reporte.zip"
     ): File = withContext(Dispatchers.IO) {
         val rootDir = dirAgrodata()
         val zipFile = File(rootDir.parentFile, zipName)  // mismo nivel que Agrodata
