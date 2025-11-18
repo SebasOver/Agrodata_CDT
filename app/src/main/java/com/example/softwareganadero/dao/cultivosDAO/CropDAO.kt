@@ -11,6 +11,6 @@ interface CropDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(entity: CropRecord): Long
 
-    @Query("SELECT * FROM crop_records ORDER BY created_at DESC")
+    @Query("SELECT * FROM crop_records ORDER BY created_at_text ASC")
     suspend fun getAll(): List<CropRecord>
 }

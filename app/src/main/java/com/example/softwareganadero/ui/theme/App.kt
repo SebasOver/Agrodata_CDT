@@ -14,6 +14,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.softwareganadero.export.AdminExportScreen
 import com.example.softwareganadero.routes.BienvenidaOperarioRoute
 import com.example.softwareganadero.routes.CercasUnificadasRoute
 import com.example.softwareganadero.routes.CorralesRoute
@@ -56,18 +57,20 @@ fun AgrodataApp() {
 
             // Admin (se mantiene)
             composable(
-                "home/{name}",
-                arguments = listOf(navArgument("name") { type = NavType.StringType })
-            ) {
-                val name = it.arguments?.getString("name").orEmpty()
-                HomePlaceholder(name)
-            }
-            composable(
                 "adminExport/{name}",
                 arguments = listOf(navArgument("name") { type = NavType.StringType })
             ) {
                 val name = it.arguments?.getString("name").orEmpty()
-                AdminExportScreen(currentUserName = name)
+                AdminExportScreen(
+                    currentUserName = name,
+                    onBack = {
+                        nav.navigate("welcome") {
+                            popUpTo("welcome") { inclusive = false }
+                            launchSingleTop = true
+                        }
+                    },
+                    adminEmail = "johansebastiantarazonadiaz@gmail.com"
+                )
             }
 
             // Menú operario

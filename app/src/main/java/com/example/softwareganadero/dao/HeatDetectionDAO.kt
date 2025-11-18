@@ -11,6 +11,6 @@ interface HeatDetectionDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(entity: HeatDetection): Long
 
-    @Query("SELECT * FROM heat_detections ORDER BY created_at DESC")
+    @Query("SELECT * FROM heat_detections ORDER BY created_at_text ASC")
     suspend fun getAll(): List<HeatDetection>
 }

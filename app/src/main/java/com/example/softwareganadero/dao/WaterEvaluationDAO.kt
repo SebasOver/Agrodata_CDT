@@ -11,6 +11,6 @@ interface WaterEvaluationDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(entity: WaterEvaluation): Long
 
-    @Query("SELECT * FROM water_evaluations ORDER BY created_at DESC")
+    @Query("SELECT * FROM water_evaluations ORDER BY created_at_text ASC")
     suspend fun getAll(): List<WaterEvaluation>
 }

@@ -89,4 +89,5 @@ dependencies {
     implementation("androidx.room:room-runtime:$room")
     implementation("androidx.room:room-ktx:$room")
     ksp("androidx.room:room-compiler:$room") // KSP recomendado [web:133][web:168]
+
 }

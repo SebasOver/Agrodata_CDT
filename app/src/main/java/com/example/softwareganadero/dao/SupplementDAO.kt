@@ -11,6 +11,6 @@ interface SupplementDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(entity: Supplement): Long
 
-    @Query("SELECT * FROM supplements ORDER BY created_at DESC")
+    @Query("SELECT * FROM supplements ORDER BY created_at_text ASC")
     suspend fun getAll(): List<Supplement>
 }

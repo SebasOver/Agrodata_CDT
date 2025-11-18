@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.example.softwareganadero.data.PastureEvaluation
+import com.example.softwareganadero.data.PastureInventory
 
 @Dao
 interface PastureEvaluationDao {
@@ -29,4 +30,6 @@ interface PastureEvaluationDao {
         updatedAt: Long,
         updatedAtText: String
     ): Int
+    @Query("SELECT * FROM pasture_evaluations ORDER BY created_at_text ASC")
+    suspend fun getAll(): List<PastureEvaluation>
 }

@@ -11,6 +11,6 @@ interface PastureFenceLogDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(entity: PastureFenceLog): Long
 
-    @Query("SELECT * FROM pasture_fence_logs ORDER BY created_at DESC")
+    @Query("SELECT * FROM pasture_fence_logs ORDER BY created_at_text ASC")
     suspend fun getAll(): List<PastureFenceLog>
 }
