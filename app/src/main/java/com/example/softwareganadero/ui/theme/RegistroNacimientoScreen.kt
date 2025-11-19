@@ -12,12 +12,15 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
@@ -73,22 +76,23 @@ fun RegistroNacimientosScreen(
     val scope = rememberCoroutineScope()
     var saving by rememberSaveable { mutableStateOf(false) }
     var showSuccess by rememberSaveable { mutableStateOf(false) }
-    // timestamps al momento de guardar (no en remember, así capturan la hora real del click)
-    fun nowPair(): Pair<Long,String> {
+
+    fun nowPair(): Pair<Long, String> {
         val millis = System.currentTimeMillis()
         val text = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-            .format(java.time.Instant.ofEpochMilli(millis).atZone(java.time.ZoneId.systemDefault()))
+            .format(
+                java.time.Instant.ofEpochMilli(millis)
+                    .atZone(java.time.ZoneId.systemDefault())
+            )
         return millis to text
     }
 
-    // Cargar vacas
     var cows by remember { mutableStateOf<List<String>>(emptyList()) }
     LaunchedEffect(Unit) { cows = db.femaleCowDao().listActive().map { it.tag } }
 
-    // Estado
     var cowTag by rememberSaveable { mutableStateOf<String?>(null) }
     var calfTag by rememberSaveable { mutableStateOf("") }
-    var sex by rememberSaveable { mutableStateOf<String?>(null) } // obliga selección
+    var sex by rememberSaveable { mutableStateOf<String?>(null) }
     var color by rememberSaveable { mutableStateOf("") }
     var weight by rememberSaveable { mutableStateOf("") }
     var colostrum by rememberSaveable { mutableStateOf(false) }
@@ -101,25 +105,54 @@ fun RegistroNacimientosScreen(
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("Registro nacimientos", fontWeight = FontWeight.Bold) },
-                navigationIcon = { IconButton(onClick = navBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver") } },
-                actions = { Image(painterResource(R.drawable.logo_blanco), null, Modifier.size(44.dp)) },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White)
+                navigationIcon = {
+                    IconButton(onClick = navBack) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver"
+                        )
+                    }
+                },
+                actions = {
+                    Image(
+                        painterResource(R.drawable.logo_blanco),
+                        null,
+                        Modifier.size(44.dp)
+                    )
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color.White
+                )
             )
         }
     ) { inner ->
+
+        // SCROLL VERTICAL PARA TODO EL FORMULARIO
+        val scrollState = rememberScrollState()
+
         Column(
-            modifier = Modifier.fillMaxSize().padding(inner).padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(inner)
+                .padding(horizontal = 16.dp)
+                .verticalScroll(scrollState),   // <- clave
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Dropdown vacas
             var expand by remember { mutableStateOf(false) }
-            ExposedDropdownMenuBox(expanded = expand, onExpandedChange = { expand = !expand }, modifier = Modifier.fillMaxWidth()) {
+            ExposedDropdownMenuBox(
+                expanded = expand,
+                onExpandedChange = { expand = !expand },
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 TextField(
                     value = cowTag ?: "Vaca",
                     onValueChange = {},
                     readOnly = true,
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expand) },
-                    modifier = Modifier.menuAnchor().fillMaxWidth(),
+                    modifier = Modifier
+                        .menuAnchor()
+                        .fillMaxWidth(),
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color(0xFF2E73C8),
                         unfocusedContainerColor = Color(0xFF2E73C8),
@@ -128,29 +161,47 @@ fun RegistroNacimientosScreen(
                         cursorColor = Color.White
                     )
                 )
-                ExposedDropdownMenu(expanded = expand, onDismissRequest = { expand = false }) {
+                ExposedDropdownMenu(
+                    expanded = expand,
+                    onDismissRequest = { expand = false }
+                ) {
                     cows.forEach { tag ->
-                        DropdownMenuItem(text = { Text(tag) }, onClick = { cowTag = tag; expand = false })
+                        DropdownMenuItem(
+                            text = { Text(tag) },
+                            onClick = {
+                                cowTag = tag
+                                expand = false
+                            }
+                        )
                     }
                 }
             }
 
-            // Cría (solo números)
-            Text("Cria")
+            // Cría
+            Text("Cría")
             TextField(
                 value = calfTag,
-                onValueChange = { txt -> if (txt.all { it.isDigit() }) calfTag = txt },
+                onValueChange = { txt ->
+                    if (txt.all { it.isDigit() }) calfTag = txt
+                },
                 modifier = Modifier.fillMaxWidth(),
-                colors = TextFieldDefaults.colors(focusedContainerColor = lightBlue, unfocusedContainerColor = lightBlue),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = lightBlue,
+                    unfocusedContainerColor = lightBlue
+                ),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
 
-            // Sexo obligatorio
+            // Sexo
             Text("Sexo")
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Row(
-                    modifier = Modifier.selectable(selected = sex == "M", onClick = { sex = "M" }, role = Role.RadioButton),
+                    modifier = Modifier.selectable(
+                        selected = sex == "M",
+                        onClick = { sex = "M" },
+                        role = Role.RadioButton
+                    ),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     RadioButton(selected = sex == "M", onClick = null)
@@ -158,7 +209,11 @@ fun RegistroNacimientosScreen(
                 }
                 Spacer(Modifier.width(24.dp))
                 Row(
-                    modifier = Modifier.selectable(selected = sex == "H", onClick = { sex = "H" }, role = Role.RadioButton),
+                    modifier = Modifier.selectable(
+                        selected = sex == "H",
+                        onClick = { sex = "H" },
+                        role = Role.RadioButton
+                    ),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     RadioButton(selected = sex == "H", onClick = null)
@@ -166,13 +221,14 @@ fun RegistroNacimientosScreen(
                 }
             }
 
-            // Color obligatorio (texto)
+            // Color
             Text("Color")
             TextField(
                 value = color,
                 onValueChange = { txt ->
-                    // Letras (ASCII + acentuadas), espacios y guion opcional
-                    val ok = txt.isEmpty() || txt.matches(Regex("^[A-Za-zÁÉÍÓÚÜáéíóúüÑñ ]{0,30}-?[A-Za-zÁÉÍÓÚÜáéíóúüÑñ ]{0,30}$"))
+                    val ok = txt.isEmpty() || txt.matches(
+                        Regex("^[A-Za-zÁÉÍÓÚÜáéíóúüÑñ ]{0,30}-?[A-Za-zÁÉÍÓÚÜáéíóúüÑñ ]{0,30}$")
+                    )
                     if (ok) color = txt
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -181,41 +237,55 @@ fun RegistroNacimientosScreen(
                     unfocusedContainerColor = Color.Transparent
                 ),
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text) // evita teclado numérico
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
             )
 
-            // Peso (solo números)
+            // Peso
             Text("Peso")
             TextField(
                 value = weight,
-                onValueChange = { txt -> if (txt.all { it.isDigit() } || txt.count { it == '.' } <= 1) weight = txt },
+                onValueChange = { txt ->
+                    if (txt.all { it.isDigit() } || txt.count { it == '.' } <= 1) {
+                        weight = txt
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
-                colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent
+                ),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
 
             // Calostro
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Text("Calostro")
-                Switch(checked = colostrum, onCheckedChange = { colostrum = it })
+                Switch(
+                    checked = colostrum,
+                    onCheckedChange = { colostrum = it }
+                )
             }
 
-            // Observaciones (opcional)
+            // Observaciones
             Text("Observaciones")
             TextField(
                 value = notes,
                 onValueChange = { notes = it },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(112.dp), // antes 140.dp
+                    .heightIn(min = 96.dp, max = 160.dp),
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = lightBlue,
                     unfocusedContainerColor = lightBlue
                 )
             )
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(16.dp))
 
             Button(
                 onClick = {
@@ -226,13 +296,34 @@ fun RegistroNacimientosScreen(
                     val weightTxt = weight.trim()
 
                     when {
-                        cow.isEmpty() -> { Toast.makeText(ctx, "Selecciona la vaca", Toast.LENGTH_LONG).show(); return@Button }
-                        calf.isEmpty() -> { Toast.makeText(ctx, "Ingresa número de cría", Toast.LENGTH_LONG).show(); return@Button }
-                        calf.toLongOrNull() == null -> { Toast.makeText(ctx, "Cría debe ser numérica", Toast.LENGTH_LONG).show(); return@Button }
-                        sexVal.isNullOrEmpty() -> { Toast.makeText(ctx, "Selecciona el sexo", Toast.LENGTH_LONG).show(); return@Button }
-                        colorTxt.isEmpty() -> { Toast.makeText(ctx, "Color obligatorio", Toast.LENGTH_LONG).show(); return@Button }
-                        weightTxt.isEmpty() -> { Toast.makeText(ctx, "Ingresa el peso", Toast.LENGTH_LONG).show(); return@Button }
-                        weightTxt.toDoubleOrNull() == null -> { Toast.makeText(ctx, "Peso debe ser numérico", Toast.LENGTH_LONG).show(); return@Button }
+                        cow.isEmpty() -> {
+                            Toast.makeText(ctx, "Selecciona la vaca", Toast.LENGTH_LONG).show()
+                            return@Button
+                        }
+                        calf.isEmpty() -> {
+                            Toast.makeText(ctx, "Ingresa número de cría", Toast.LENGTH_LONG).show()
+                            return@Button
+                        }
+                        calf.toLongOrNull() == null -> {
+                            Toast.makeText(ctx, "Cría debe ser numérica", Toast.LENGTH_LONG).show()
+                            return@Button
+                        }
+                        sexVal.isNullOrEmpty() -> {
+                            Toast.makeText(ctx, "Selecciona el sexo", Toast.LENGTH_LONG).show()
+                            return@Button
+                        }
+                        colorTxt.isEmpty() -> {
+                            Toast.makeText(ctx, "Color obligatorio", Toast.LENGTH_LONG).show()
+                            return@Button
+                        }
+                        weightTxt.isEmpty() -> {
+                            Toast.makeText(ctx, "Ingresa el peso", Toast.LENGTH_LONG).show()
+                            return@Button
+                        }
+                        weightTxt.toDoubleOrNull() == null -> {
+                            Toast.makeText(ctx, "Peso debe ser numérico", Toast.LENGTH_LONG).show()
+                            return@Button
+                        }
                     }
 
                     if (saving) return@Button
@@ -253,29 +344,45 @@ fun RegistroNacimientosScreen(
                                 createdAtText = text,
                                 createdAtMillis = millis
                             )
-                            showSuccess = true // abrir diálogo de éxito
+                            showSuccess = true
                         } catch (t: Throwable) {
-                            Toast.makeText(ctx, "Error: ${t.message}", Toast.LENGTH_LONG).show()
+                            Toast.makeText(
+                                ctx,
+                                "Error: ${t.message}",
+                                Toast.LENGTH_LONG
+                            ).show()
                         } finally {
                             saving = false
                         }
                     }
                 },
-                enabled = !saving && !showSuccess,   // evita dobles envíos mientras el diálogo está visible
-                modifier = Modifier.fillMaxWidth().height(60.dp),
+                enabled = !saving && !showSuccess,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
                 shape = RoundedCornerShape(28.dp),
-                contentPadding = PaddingValues(vertical = 20.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E73C8), contentColor = Color.White)
-            ) { Text(if (saving) "Guardando..." else "Guardar", fontSize = 16.sp) }
+                contentPadding = PaddingValues(vertical = 14.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF2E73C8),
+                    contentColor = Color.White
+                )
+            ) {
+                Text(
+                    text = if (saving) "Guardando..." else "Guardar",
+                    fontSize = 16.sp
+                )
+            }
+
+            Spacer(Modifier.height(16.dp))
         }
     }
+
     SuccessDialogDual(
         show = showSuccess,
         title = "Guardado con éxito",
         message = "El nacimiento se registró correctamente.",
         primaryText = "Volver",
         onPrimary = {
-            // opcional: limpiar lo que quieras antes de salir
             calfTag = ""
             sex = null
             color = ""
@@ -287,7 +394,6 @@ fun RegistroNacimientosScreen(
         },
         secondaryText = "Continuar registrando",
         onSecondary = {
-            // limpiar para un nuevo registro pero mantener la vaca seleccionada
             calfTag = ""
             sex = null
             color = ""
@@ -295,7 +401,6 @@ fun RegistroNacimientosScreen(
             colostrum = false
             notes = ""
             showSuccess = false
-            // cowTag se conserva
         },
         onDismiss = { showSuccess = false }
     )

@@ -42,7 +42,7 @@ import com.example.softwareganadero.data.visitasData.ParticularRecord
         HealthControl::class, Weighing::class, Palpation::class, TriageRecord::class, InstitutionRecord::class, ParticularRecord::class,
         CropRecord::class,
     ],
-    version = 27, // subir desde 9
+    version = 27,
     exportSchema = true
 )    abstract class AgroDatabase : RoomDatabase() {
     abstract fun producerDao(): ProducerDao
@@ -579,10 +579,11 @@ import com.example.softwareganadero.data.visitasData.ParticularRecord
         @Volatile private var INSTANCE: AgroDatabase? = null
         fun get(context: Context): AgroDatabase =
             INSTANCE ?: synchronized(this) {
-                INSTANCE ?: run { val isDebug = (context.applicationInfo.flags and
-                        android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
-                    val dbName = if (isDebug) "agrodata_dev.db" else "agrodata.db"
-                    // 2) Construcción del builder como ya lo tienes
+                INSTANCE ?: run {
+                    val appId = context.packageName
+                    val isDevFlavor = appId.endsWith(".dev")
+                    val dbName = if (isDevFlavor) "agrodata_dev.db" else "agrodata.db"
+
                     val builder = Room.databaseBuilder(
                         context.applicationContext,
                         AgroDatabase::class.java,

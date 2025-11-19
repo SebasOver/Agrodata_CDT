@@ -40,6 +40,19 @@ android {
     buildFeatures {
         compose = true
     }
+    flavorDimensions += "env"
+
+    productFlavors {
+        create("dev") {
+            dimension = "env"
+            applicationId = "com.example.softwareganadero.dev"
+            versionNameSuffix = "-dev"
+        }
+        create("prod") {
+            dimension = "env"
+            applicationId = "com.example.softwareganadero"
+        }
+    }
 }
 dependencies {
     implementation(libs.androidx.core.ktx)

@@ -5,8 +5,10 @@ import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
@@ -51,54 +53,89 @@ fun PrecipitacionScreen(
     val precipValid = precipMm.isNotBlank() && precipMm.toDoubleOrNull() != null
 
     // ---------- Estado: Inventario ----------
-    var lot by rememberSaveable { mutableStateOf("") }        // NUEVO
+    var lot by rememberSaveable { mutableStateOf("") }
     var healthy by rememberSaveable { mutableStateOf("") }
     var sick by rememberSaveable { mutableStateOf("") }
-    var savingInv by rememberSaveable { mutableStateOf(false) } // <- añade esto
+    var savingInv by rememberSaveable { mutableStateOf(false) }
 
     val lotInt = lot.toIntOrNull()
     val hInt = healthy.toIntOrNull()
     val sInt = sick.toIntOrNull()
     val total = (hInt ?: 0) + (sInt ?: 0)
-    val inventoryValid = lotInt != null && hInt != null && sInt != null
+
+    val lotValid = lot.isNotBlank()
+    val inventoryValid = lotValid && hInt != null && sInt != null
+
     var showPrecipSuccess by rememberSaveable { mutableStateOf(false) }
     var showInvSuccess by rememberSaveable { mutableStateOf(false) }
+
     Scaffold(
         containerColor = Color.White,
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Precipitación e inventario animales", fontWeight = FontWeight.Bold) },
+                title = {
+                    Text(
+                        "Precipitación e inventario animales",
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = navBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver"
+                        )
                     }
                 },
                 actions = {
-                    Image(painterResource(R.drawable.logo_blanco), null, Modifier.size(44.dp))
+                    Image(
+                        painterResource(R.drawable.logo_blanco),
+                        null,
+                        Modifier.size(44.dp)
+                    )
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White)
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color.White
+                )
             )
         }
     ) { inner ->
+
+        // SCROLL VERTICAL PARA TODO EL CONTENIDO
+        val scrollState = rememberScrollState()
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(inner)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp)
+                .padding(horizontal = 16.dp)
+                .verticalScroll(scrollState),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // ====== Sección: Precipitación ======
-            Text("Precipitación", fontWeight = FontWeight.SemiBold, fontSize = 20.sp,
-                modifier = Modifier.align(Alignment.CenterHorizontally))
+            Text(
+                "Precipitación",
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 20.sp,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
 
             Text("Cantidad (mm)")
             TextField(
                 value = precipMm,
-                onValueChange = { s -> if (s.isEmpty() || s.matches(Regex("""\d*\.?\d*"""))) precipMm = s },
+                onValueChange = { s ->
+                    if (s.isEmpty() || s.matches(Regex("""\d*\.?\d*"""))) {
+                        precipMm = s
+                    }
+                },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 isError = precipMm.isNotEmpty() && precipMm.toDoubleOrNull() == null,
-                supportingText = { if (precipMm.isNotEmpty() && precipMm.toDoubleOrNull() == null) Text("Ej: 12.3") },
+                supportingText = {
+                    if (precipMm.isNotEmpty() && precipMm.toDoubleOrNull() == null) {
+                        Text("Ej: 12.3")
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = lightBlue,
@@ -113,24 +150,44 @@ fun PrecipitacionScreen(
                     scope.launch {
                         try {
                             val nowMillis = System.currentTimeMillis()
-                            val nowText = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-                                .format(Instant.ofEpochMilli(nowMillis).atZone(ZoneId.systemDefault()))
-                            repo.savePrecipitation(precipMm.toDouble(), currentOperatorName.trim(), nowText, nowMillis)
+                            val nowText =
+                                java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+                                    .format(
+                                        Instant.ofEpochMilli(nowMillis)
+                                            .atZone(ZoneId.systemDefault())
+                                    )
+
+                            repo.savePrecipitation(
+                                precipMm.toDouble(),
+                                currentOperatorName.trim(),
+                                nowText,
+                                nowMillis
+                            )
                             precipMm = ""
                             showPrecipSuccess = true
                         } catch (e: Exception) {
-                            Toast.makeText(ctx, "Error: ${e.message ?: "desconocido"}", Toast.LENGTH_LONG).show()
-                        } finally { savingPrecip = false }
+                            Toast.makeText(
+                                ctx,
+                                "Error: ${e.message ?: "desconocido"}",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        } finally {
+                            savingPrecip = false
+                        }
                     }
                 },
                 enabled = precipValid && !savingPrecip,
-                modifier = Modifier.fillMaxWidth().height(48.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
                 shape = RoundedCornerShape(24.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (precipValid) primaryBlue else Color(0xFF9CB9E6),
                     contentColor = Color.White
                 )
-            ) { Text(if (savingPrecip) "Guardando..." else "Guardar") }
+            ) {
+                Text(if (savingPrecip) "Guardando..." else "Guardar")
+            }
 
             Spacer(Modifier.height(8.dp))
 
@@ -146,40 +203,54 @@ fun PrecipitacionScreen(
             Text("Lote de ganado")
             TextField(
                 value = lot,
-                onValueChange = { lot = it }, // sin restricción
+                onValueChange = { lot = it },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                 modifier = Modifier.fillMaxWidth(),
-                colors = TextFieldDefaults.colors(focusedContainerColor = lightBlue, unfocusedContainerColor = lightBlue)
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = lightBlue,
+                    unfocusedContainerColor = lightBlue
+                )
             )
-            val lotValid = lot.isNotBlank()
-            val inventoryValid = lotValid && hInt != null && sInt != null
 
             Text("Animales sanos")
             TextField(
                 value = healthy,
-                onValueChange = { s -> if (s.isEmpty() || s.matches(Regex("""\d+"""))) healthy = s },
+                onValueChange = { s ->
+                    if (s.isEmpty() || s.matches(Regex("""\d+"""))) healthy = s
+                },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 isError = healthy.isNotEmpty() && hInt == null,
-                supportingText = { if (healthy.isNotEmpty() && hInt == null) Text("Número entero") },
+                supportingText = {
+                    if (healthy.isNotEmpty() && hInt == null) Text("Número entero")
+                },
                 modifier = Modifier.fillMaxWidth(),
-                colors = TextFieldDefaults.colors(focusedContainerColor = lightBlue, unfocusedContainerColor = lightBlue)
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = lightBlue,
+                    unfocusedContainerColor = lightBlue
+                )
             )
 
             Text("Animales enfermos")
             TextField(
                 value = sick,
-                onValueChange = { s -> if (s.isEmpty() || s.matches(Regex("""\d+"""))) sick = s },
+                onValueChange = { s ->
+                    if (s.isEmpty() || s.matches(Regex("""\d+"""))) sick = s
+                },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 isError = sick.isNotEmpty() && sInt == null,
-                supportingText = { if (sick.isNotEmpty() && sInt == null) Text("Número entero") },
+                supportingText = {
+                    if (sick.isNotEmpty() && sInt == null) Text("Número entero")
+                },
                 modifier = Modifier.fillMaxWidth(),
-                colors = TextFieldDefaults.colors(focusedContainerColor = lightBlue, unfocusedContainerColor = lightBlue)
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = lightBlue,
+                    unfocusedContainerColor = lightBlue
+                )
             )
 
-// Total como texto "flotando"
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -198,7 +269,11 @@ fun PrecipitacionScreen(
                 onClick = {
                     if (!inventoryValid || savingInv) {
                         if (!inventoryValid) {
-                            Toast.makeText(ctx, "Completa lote, sanos y enfermos con datos válidos", Toast.LENGTH_LONG).show()
+                            Toast.makeText(
+                                ctx,
+                                "Completa lote, sanos y enfermos con datos válidos",
+                                Toast.LENGTH_LONG
+                            ).show()
                         }
                         return@Button
                     }
@@ -206,40 +281,67 @@ fun PrecipitacionScreen(
                     scope.launch {
                         try {
                             val nowMillis = System.currentTimeMillis()
-                            val nowText = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-                                .format(Instant.ofEpochMilli(nowMillis).atZone(ZoneId.systemDefault()))
-                            repo.savePastureInventory(lotInt ?: 0, hInt!!, sInt!!, total, currentOperatorName.trim(), nowText, nowMillis)
-                            lot = ""; healthy = ""; sick = ""
+                            val nowText =
+                                java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+                                    .format(
+                                        Instant.ofEpochMilli(nowMillis)
+                                            .atZone(ZoneId.systemDefault())
+                                    )
+
+                            repo.savePastureInventory(
+                                lotInt ?: 0,
+                                hInt!!,
+                                sInt!!,
+                                total,
+                                currentOperatorName.trim(),
+                                nowText,
+                                nowMillis
+                            )
+                            lot = ""
+                            healthy = ""
+                            sick = ""
                             showInvSuccess = true
                         } catch (e: Exception) {
-                            Toast.makeText(ctx, "Error: ${e.message ?: "desconocido"}", Toast.LENGTH_LONG).show()
-                        } finally { savingInv = false }
+                            Toast.makeText(
+                                ctx,
+                                "Error: ${e.message ?: "desconocido"}",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        } finally {
+                            savingInv = false
+                        }
                     }
                 },
                 enabled = inventoryValid && !savingInv,
-                modifier = Modifier.fillMaxWidth().height(48.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
                 shape = RoundedCornerShape(24.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (inventoryValid) primaryBlue else Color(0xFF9CB9E6),
                     contentColor = Color.White
                 )
-            ) { Text(if (savingInv) "Guardando..." else "Guardar") }
-            Spacer(Modifier.height(8.dp))
+            ) {
+                Text(if (savingInv) "Guardando..." else "Guardar")
+            }
+
+            Spacer(Modifier.height(16.dp))
         }
     }
-// Precipitación: solo continuar hacia inventario
+
+    // Diálogo precipitación
     SuccessDialogDual(
         show = showPrecipSuccess,
         title = "Precipitación guardada",
         message = "Continúa con el inventario de animales.",
-        primaryText = "Volver", // opcional: si no quieres volver aquí, puedes cambiarlo por "Cerrar"
+        primaryText = "Volver",
         onPrimary = { showPrecipSuccess = false; navBack() },
         secondaryText = "Continuar registrando",
-        onSecondary = { showPrecipSuccess = false /* opcional: desplazar al inventario si usas LazyColumn */ },
+        onSecondary = { showPrecipSuccess = false },
         onDismiss = { showPrecipSuccess = false }
     )
 
-// Inventario: permitir volver o registrar otro
+    // Diálogo inventario
     SuccessDialogDual(
         show = showInvSuccess,
         title = "Inventario guardado",
@@ -247,9 +349,8 @@ fun PrecipitacionScreen(
         primaryText = "Volver",
         onPrimary = { showInvSuccess = false; navBack() },
         secondaryText = "Continuar registrando",
-        onSecondary = {
-            showInvSuccess = false
-        },
+        onSecondary = { showInvSuccess = false },
         onDismiss = { showInvSuccess = false }
     )
 }
+

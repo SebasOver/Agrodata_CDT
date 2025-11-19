@@ -1,8 +1,8 @@
-package com.example.softwareganadero.data
+package com.example.softwareganadero.export
 
 import android.content.Context
 import android.os.Environment
-import android.util.Log
+import com.example.softwareganadero.data.AgroRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -13,14 +13,13 @@ import java.io.FileOutputStream
 import java.io.FileWriter
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
-import kotlin.text.append
 
 class CsvExporter(
     private val context: Context,
     private val repository: AgroRepository,
     private val io: CoroutineDispatcher = Dispatchers.IO,
 
-) {
+    ) {
     private val SEP = ';'
     private fun yesNo(value: Boolean): String = if (value) "Si" else "No"
 
@@ -322,7 +321,8 @@ class CsvExporter(
     ): File = withContext(io) {
         val dir = dirCorrales()
         val file = File(dir, fileName)
-        val data = repository.listHealthControls()   // DAO: SELECT * FROM health_control ORDER BY created_at_text ASC
+        val data =
+            repository.listHealthControls()   // DAO: SELECT * FROM health_control ORDER BY created_at_text ASC
 
         FileWriter(file, false).use { fw ->
             BufferedWriter(fw).use { bw ->
@@ -358,7 +358,8 @@ class CsvExporter(
     ): File = withContext(io) {
         val dir = dirCorrales()
         val file = File(dir, fileName)
-        val data = repository.listPalpations()   // DAO: SELECT * FROM palpations ORDER BY created_at_text ASC
+        val data =
+            repository.listPalpations()   // DAO: SELECT * FROM palpations ORDER BY created_at_text ASC
 
         FileWriter(file, false).use { fw ->
             BufferedWriter(fw).use { bw ->
@@ -388,7 +389,8 @@ class CsvExporter(
     ): File = withContext(io) {
         val dir = dirCorrales()
         val file = File(dir, fileName)
-        val data = repository.listTriageRecords()   // DAO: SELECT * FROM triage_records ORDER BY created_at_text ASC
+        val data =
+            repository.listTriageRecords()   // DAO: SELECT * FROM triage_records ORDER BY created_at_text ASC
 
         FileWriter(file, false).use { fw ->
             BufferedWriter(fw).use { bw ->
@@ -422,7 +424,8 @@ class CsvExporter(
     ): File = withContext(io) {
         val dir = dirCorrales()
         val file = File(dir, fileName)
-        val data = repository.listWeighings()   // DAO: SELECT * FROM weighings ORDER BY created_at_text ASC
+        val data =
+            repository.listWeighings()   // DAO: SELECT * FROM weighings ORDER BY created_at_text ASC
 
         FileWriter(file, false).use { fw ->
             BufferedWriter(fw).use { bw ->
@@ -543,6 +546,7 @@ class CsvExporter(
                     val fechaEntrada = r.createdAtText
                     val horaSalida = r.closedAtText ?: ""
                     bw.append(esc(fechaEntrada)).append(SEP)
+                        .append(esc(horaSalida)).append(SEP)
                         .append(esc(r.visitorName)).append(SEP)
                         .append(esc(r.reason)).append(SEP)
                         .append(r.notes?.let(::esc) ?: "")
@@ -596,4 +600,3 @@ class CsvExporter(
         cleanupCsvInDir(dirVisitas())
     }
 }
-

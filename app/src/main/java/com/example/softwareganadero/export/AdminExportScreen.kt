@@ -37,7 +37,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.softwareganadero.data.AgroDatabase
 import com.example.softwareganadero.data.AgroRepository
-import com.example.softwareganadero.data.CsvExporter
+import com.example.softwareganadero.export.CsvExporter
 import com.example.softwareganadero.data.UserRole
 import kotlinx.coroutines.launch
 
