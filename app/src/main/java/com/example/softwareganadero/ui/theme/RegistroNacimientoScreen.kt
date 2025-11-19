@@ -57,10 +57,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.softwareganadero.R
 import com.example.softwareganadero.data.AgroDatabase
 import com.example.softwareganadero.dialogs.SuccessDialogDual
 import com.example.softwareganadero.domain.BirthRepository
+import com.example.softwareganadero.viewmodel.RegistroNacimientosViewModel
 import kotlinx.coroutines.launch
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -73,30 +77,20 @@ fun RegistroNacimientosScreen(
     val ctx = LocalContext.current
     val db: AgroDatabase = remember { AgroDatabase.get(ctx) }
     val birthRepo = remember { BirthRepository(db) }
-    val scope = rememberCoroutineScope()
-    var saving by rememberSaveable { mutableStateOf(false) }
-    var showSuccess by rememberSaveable { mutableStateOf(false) }
 
-    fun nowPair(): Pair<Long, String> {
-        val millis = System.currentTimeMillis()
-        val text = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-            .format(
-                java.time.Instant.ofEpochMilli(millis)
-                    .atZone(java.time.ZoneId.systemDefault())
-            )
-        return millis to text
-    }
-
-    var cows by remember { mutableStateOf<List<String>>(emptyList()) }
-    LaunchedEffect(Unit) { cows = db.femaleCowDao().listActive().map { it.tag } }
-
-    var cowTag by rememberSaveable { mutableStateOf<String?>(null) }
-    var calfTag by rememberSaveable { mutableStateOf("") }
-    var sex by rememberSaveable { mutableStateOf<String?>(null) }
-    var color by rememberSaveable { mutableStateOf("") }
-    var weight by rememberSaveable { mutableStateOf("") }
-    var colostrum by rememberSaveable { mutableStateOf(false) }
-    var notes by rememberSaveable { mutableStateOf("") }
+    // Crear ViewModel con factory sencilla
+    val viewModel: RegistroNacimientosViewModel = viewModel(
+        factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                return RegistroNacimientosViewModel(
+                    db = db,
+                    birthRepo = birthRepo,
+                    operatorName = currentOperatorName
+                ) as T
+            }
+        }
+    )
 
     val lightBlue = Color(0xFFE6F0FA)
 
@@ -127,7 +121,6 @@ fun RegistroNacimientosScreen(
         }
     ) { inner ->
 
-        // SCROLL VERTICAL PARA TODO EL FORMULARIO
         val scrollState = rememberScrollState()
 
         Column(
@@ -135,7 +128,7 @@ fun RegistroNacimientosScreen(
                 .fillMaxSize()
                 .padding(inner)
                 .padding(horizontal = 16.dp)
-                .verticalScroll(scrollState),   // <- clave
+                .verticalScroll(scrollState),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Dropdown vacas
@@ -146,7 +139,7 @@ fun RegistroNacimientosScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 TextField(
-                    value = cowTag ?: "Vaca",
+                    value = viewModel.cowTag ?: "Vaca",
                     onValueChange = {},
                     readOnly = true,
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expand) },
@@ -165,11 +158,11 @@ fun RegistroNacimientosScreen(
                     expanded = expand,
                     onDismissRequest = { expand = false }
                 ) {
-                    cows.forEach { tag ->
+                    viewModel.cows.forEach { tag ->
                         DropdownMenuItem(
                             text = { Text(tag) },
                             onClick = {
-                                cowTag = tag
+                                viewModel.onCowSelected(tag)
                                 expand = false
                             }
                         )
@@ -180,10 +173,8 @@ fun RegistroNacimientosScreen(
             // Cría
             Text("Cría")
             TextField(
-                value = calfTag,
-                onValueChange = { txt ->
-                    if (txt.all { it.isDigit() }) calfTag = txt
-                },
+                value = viewModel.calfTag,
+                onValueChange = viewModel::onCalfChanged,
                 modifier = Modifier.fillMaxWidth(),
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = lightBlue,
@@ -198,25 +189,25 @@ fun RegistroNacimientosScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Row(
                     modifier = Modifier.selectable(
-                        selected = sex == "M",
-                        onClick = { sex = "M" },
+                        selected = viewModel.sex == "M",
+                        onClick = { viewModel.onSexChanged("M") },
                         role = Role.RadioButton
                     ),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    RadioButton(selected = sex == "M", onClick = null)
+                    RadioButton(selected = viewModel.sex == "M", onClick = null)
                     Text("Macho", modifier = Modifier.padding(start = 8.dp))
                 }
                 Spacer(Modifier.width(24.dp))
                 Row(
                     modifier = Modifier.selectable(
-                        selected = sex == "H",
-                        onClick = { sex = "H" },
+                        selected = viewModel.sex == "H",
+                        onClick = { viewModel.onSexChanged("H") },
                         role = Role.RadioButton
                     ),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    RadioButton(selected = sex == "H", onClick = null)
+                    RadioButton(selected = viewModel.sex == "H", onClick = null)
                     Text("Hembra", modifier = Modifier.padding(start = 8.dp))
                 }
             }
@@ -224,13 +215,8 @@ fun RegistroNacimientosScreen(
             // Color
             Text("Color")
             TextField(
-                value = color,
-                onValueChange = { txt ->
-                    val ok = txt.isEmpty() || txt.matches(
-                        Regex("^[A-Za-zÁÉÍÓÚÜáéíóúüÑñ ]{0,30}-?[A-Za-zÁÉÍÓÚÜáéíóúüÑñ ]{0,30}$")
-                    )
-                    if (ok) color = txt
-                },
+                value = viewModel.color,
+                onValueChange = viewModel::onColorChanged,
                 modifier = Modifier.fillMaxWidth(),
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,
@@ -243,12 +229,8 @@ fun RegistroNacimientosScreen(
             // Peso
             Text("Peso")
             TextField(
-                value = weight,
-                onValueChange = { txt ->
-                    if (txt.all { it.isDigit() } || txt.count { it == '.' } <= 1) {
-                        weight = txt
-                    }
-                },
+                value = viewModel.weight,
+                onValueChange = viewModel::onWeightChanged,
                 modifier = Modifier.fillMaxWidth(),
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,
@@ -266,16 +248,16 @@ fun RegistroNacimientosScreen(
             ) {
                 Text("Calostro")
                 Switch(
-                    checked = colostrum,
-                    onCheckedChange = { colostrum = it }
+                    checked = viewModel.colostrum,
+                    onCheckedChange = viewModel::onColostrumChanged
                 )
             }
 
             // Observaciones
             Text("Observaciones")
             TextField(
-                value = notes,
-                onValueChange = { notes = it },
+                value = viewModel.notes,
+                onValueChange = viewModel::onNotesChanged,
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 96.dp, max = 160.dp),
@@ -289,74 +271,11 @@ fun RegistroNacimientosScreen(
 
             Button(
                 onClick = {
-                    val cow = cowTag?.trim().orEmpty()
-                    val calf = calfTag.trim()
-                    val sexVal = sex
-                    val colorTxt = color.trim()
-                    val weightTxt = weight.trim()
-
-                    when {
-                        cow.isEmpty() -> {
-                            Toast.makeText(ctx, "Selecciona la vaca", Toast.LENGTH_LONG).show()
-                            return@Button
-                        }
-                        calf.isEmpty() -> {
-                            Toast.makeText(ctx, "Ingresa número de cría", Toast.LENGTH_LONG).show()
-                            return@Button
-                        }
-                        calf.toLongOrNull() == null -> {
-                            Toast.makeText(ctx, "Cría debe ser numérica", Toast.LENGTH_LONG).show()
-                            return@Button
-                        }
-                        sexVal.isNullOrEmpty() -> {
-                            Toast.makeText(ctx, "Selecciona el sexo", Toast.LENGTH_LONG).show()
-                            return@Button
-                        }
-                        colorTxt.isEmpty() -> {
-                            Toast.makeText(ctx, "Color obligatorio", Toast.LENGTH_LONG).show()
-                            return@Button
-                        }
-                        weightTxt.isEmpty() -> {
-                            Toast.makeText(ctx, "Ingresa el peso", Toast.LENGTH_LONG).show()
-                            return@Button
-                        }
-                        weightTxt.toDoubleOrNull() == null -> {
-                            Toast.makeText(ctx, "Peso debe ser numérico", Toast.LENGTH_LONG).show()
-                            return@Button
-                        }
-                    }
-
-                    if (saving) return@Button
-                    saving = true
-
-                    val (millis, text) = nowPair()
-                    scope.launch {
-                        try {
-                            birthRepo.saveBirth(
-                                cowTag = cow,
-                                calfTag = calf,
-                                sex = sexVal!!,
-                                color = colorTxt,
-                                weight = weightTxt,
-                                colostrum = colostrum,
-                                notes = notes,
-                                operatorName = currentOperatorName,
-                                createdAtText = text,
-                                createdAtMillis = millis
-                            )
-                            showSuccess = true
-                        } catch (t: Throwable) {
-                            Toast.makeText(
-                                ctx,
-                                "Error: ${t.message}",
-                                Toast.LENGTH_LONG
-                            ).show()
-                        } finally {
-                            saving = false
-                        }
+                    viewModel.saveBirth { msg ->
+                        Toast.makeText(ctx, msg, Toast.LENGTH_LONG).show()
                     }
                 },
-                enabled = !saving && !showSuccess,
+                enabled = !viewModel.saving && !viewModel.showSuccess,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
@@ -368,7 +287,7 @@ fun RegistroNacimientosScreen(
                 )
             ) {
                 Text(
-                    text = if (saving) "Guardando..." else "Guardar",
+                    text = if (viewModel.saving) "Guardando..." else "Guardar",
                     fontSize = 16.sp
                 )
             }
@@ -378,30 +297,18 @@ fun RegistroNacimientosScreen(
     }
 
     SuccessDialogDual(
-        show = showSuccess,
+        show = viewModel.showSuccess,
         title = "Guardado con éxito",
         message = "El nacimiento se registró correctamente.",
         primaryText = "Volver",
         onPrimary = {
-            calfTag = ""
-            sex = null
-            color = ""
-            weight = ""
-            colostrum = false
-            notes = ""
-            showSuccess = false
+            viewModel.resetAndClearCow()
             navBack()
         },
         secondaryText = "Continuar registrando",
         onSecondary = {
-            calfTag = ""
-            sex = null
-            color = ""
-            weight = ""
-            colostrum = false
-            notes = ""
-            showSuccess = false
+            viewModel.resetForNew()
         },
-        onDismiss = { showSuccess = false }
+        onDismiss = { viewModel.dismissSuccess() }
     )
 }
