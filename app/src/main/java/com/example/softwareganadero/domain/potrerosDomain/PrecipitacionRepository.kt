@@ -1,8 +1,8 @@
-package com.example.softwareganadero.domain
+package com.example.softwareganadero.domain.potrerosDomain
 
 import com.example.softwareganadero.data.AgroDatabase
-import com.example.softwareganadero.data.PastureInventory
-import com.example.softwareganadero.data.Precipitation
+import com.example.softwareganadero.data.potrerosData.PastureInventory
+import com.example.softwareganadero.data.potrerosData.Precipitation
 
 class PrecipitacionRepository(private val db: AgroDatabase) {
     suspend fun savePrecipitation(amountMm: Double, operator: String, atText: String, atMillis: Long) {

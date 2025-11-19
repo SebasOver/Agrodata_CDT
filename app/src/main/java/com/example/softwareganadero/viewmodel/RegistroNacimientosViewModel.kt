@@ -8,7 +8,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.softwareganadero.data.AgroDatabase
-import com.example.softwareganadero.domain.BirthRepository
+import com.example.softwareganadero.domain.potrerosDomain.BirthRepository
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId

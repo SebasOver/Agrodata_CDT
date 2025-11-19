@@ -1,4 +1,4 @@
-package com.example.softwareganadero.ui.theme
+package com.example.softwareganadero.ui.theme.potreros
 
 import android.os.Build
 import android.widget.Toast
@@ -15,7 +15,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -24,7 +23,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
@@ -44,6 +42,9 @@ import androidx.compose.ui.unit.dp
 import com.example.softwareganadero.R
 import com.example.softwareganadero.dialogs.SuccessDialogDual
 import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -165,8 +166,8 @@ fun SuplementosScreen(
                     if (saving) return@Button
                     saving = true
                     val ts = System.currentTimeMillis()
-                    val tsText = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-                        .format(java.time.Instant.ofEpochMilli(ts).atZone(java.time.ZoneId.systemDefault()))
+                    val tsText = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+                        .format(Instant.ofEpochMilli(ts).atZone(ZoneId.systemDefault()))
 
                     scope.launch {
                         try {

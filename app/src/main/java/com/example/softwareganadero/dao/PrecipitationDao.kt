@@ -3,8 +3,7 @@ package com.example.softwareganadero.dao
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
-import com.example.softwareganadero.data.Precipitation
-import com.example.softwareganadero.data.Supplement
+import com.example.softwareganadero.data.potrerosData.Precipitation
 
 @Dao
 interface PrecipitationDAO {

@@ -4,7 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import com.example.softwareganadero.data.Supplement
+import com.example.softwareganadero.data.potrerosData.Supplement
 
 @Dao
 interface SupplementDao {

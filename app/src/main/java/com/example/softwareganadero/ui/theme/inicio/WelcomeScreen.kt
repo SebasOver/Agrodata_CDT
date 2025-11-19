@@ -1,4 +1,4 @@
-package com.example.softwareganadero.ui.theme
+package com.example.softwareganadero.ui.theme.inicio
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background

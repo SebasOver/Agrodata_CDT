@@ -1,4 +1,4 @@
-package com.example.softwareganadero.ui.theme
+package com.example.softwareganadero.ui.theme.potreros
 
 import android.os.Build
 import android.widget.Toast
@@ -50,6 +50,7 @@ import com.example.softwareganadero.dialogs.SuccessDialogDual
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -163,7 +164,7 @@ fun DeteccionCelosScreen(
                     saving = true
 
                     val ts = System.currentTimeMillis()
-                    val tsText = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+                    val tsText = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
                         .format(Instant.ofEpochMilli(ts).atZone(ZoneId.systemDefault()))
                     scope.launch {
                         try {

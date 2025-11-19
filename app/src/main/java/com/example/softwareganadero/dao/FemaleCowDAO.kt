@@ -4,7 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import com.example.softwareganadero.data.FemaleCow
+import com.example.softwareganadero.data.potrerosData.FemaleCow
 
 @Dao
 interface FemaleCowDao {

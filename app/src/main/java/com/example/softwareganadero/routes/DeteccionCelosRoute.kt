@@ -7,8 +7,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import com.example.softwareganadero.data.AgroDatabase
-import com.example.softwareganadero.domain.HeatDetectionRepository
-import com.example.softwareganadero.ui.theme.DeteccionCelosScreen
+import com.example.softwareganadero.domain.potrerosDomain.HeatDetectionRepository
+import com.example.softwareganadero.ui.theme.potreros.DeteccionCelosScreen
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable

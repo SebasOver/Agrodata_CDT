@@ -1,7 +1,7 @@
-package com.example.softwareganadero.domain
+package com.example.softwareganadero.domain.potrerosDomain
 
 import com.example.softwareganadero.data.AgroDatabase
-import com.example.softwareganadero.data.BirthRecord
+import com.example.softwareganadero.data.potrerosData.BirthRecord
 
 class BirthRepository(private val db: AgroDatabase) {
     suspend fun saveBirth(

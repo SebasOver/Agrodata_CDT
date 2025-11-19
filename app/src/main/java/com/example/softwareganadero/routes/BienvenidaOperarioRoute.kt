@@ -2,7 +2,7 @@ package com.example.softwareganadero.routes
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavController
-import com.example.softwareganadero.ui.theme.BienvenidaOperarioScreen
+import com.example.softwareganadero.ui.theme.inicio.BienvenidaOperarioScreen
 
 @Composable
 fun BienvenidaOperarioRoute(nav: NavController) {

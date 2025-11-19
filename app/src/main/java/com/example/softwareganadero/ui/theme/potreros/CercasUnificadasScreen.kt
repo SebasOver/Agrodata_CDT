@@ -1,4 +1,4 @@
-package com.example.softwareganadero.ui.theme
+package com.example.softwareganadero.ui.theme.potreros
 
 import android.os.Build
 import android.widget.Toast
@@ -42,6 +42,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.softwareganadero.R
 import com.example.softwareganadero.dialogs.SuccessDialogDual
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -131,8 +134,8 @@ fun CercasUnificadasScreen(
                     if (saving) return@Button
                     saving = true
                     val ts = System.currentTimeMillis()
-                    val tsText = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-                        .format(java.time.Instant.ofEpochMilli(ts).atZone(java.time.ZoneId.systemDefault()))
+                    val tsText = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+                        .format(Instant.ofEpochMilli(ts).atZone(ZoneId.systemDefault()))
                     try {
                         onGuardar(r, p, v, notes.ifBlank { null }, ts, tsText)
                         // limpieza de campos

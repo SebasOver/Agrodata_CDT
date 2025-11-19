@@ -1,7 +1,7 @@
-package com.example.softwareganadero.domain
+package com.example.softwareganadero.domain.potrerosDomain
 
 import com.example.softwareganadero.data.AgroDatabase
-import com.example.softwareganadero.data.PastureEvaluation
+import com.example.softwareganadero.data.potrerosData.PastureEvaluation
 
 class PastureEvaluationRepository(private val db: AgroDatabase) {
     private val dao = db.pastureEvaluationDao()

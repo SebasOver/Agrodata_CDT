@@ -2,7 +2,7 @@ package com.example.softwareganadero.export
 
 import android.content.Context
 import android.os.Environment
-import com.example.softwareganadero.data.AgroRepository
+import com.example.softwareganadero.domain.potrerosDomain.AgroRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

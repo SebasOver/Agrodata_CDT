@@ -1,4 +1,4 @@
-package com.example.softwareganadero.data
+package com.example.softwareganadero.data.potrerosData
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity

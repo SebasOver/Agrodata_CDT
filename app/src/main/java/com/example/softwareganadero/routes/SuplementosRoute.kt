@@ -8,8 +8,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
 import com.example.softwareganadero.data.AgroDatabase
-import com.example.softwareganadero.domain.SupplementsRepository
-import com.example.softwareganadero.ui.theme.SuplementosScreen
+import com.example.softwareganadero.domain.potrerosDomain.SupplementsRepository
+import com.example.softwareganadero.ui.theme.potreros.SuplementosScreen
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable

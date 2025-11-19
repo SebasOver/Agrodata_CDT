@@ -30,6 +30,15 @@ import com.example.softwareganadero.data.corralesData.Palpation
 import com.example.softwareganadero.data.corralesData.TriageRecord
 import com.example.softwareganadero.data.corralesData.Weighing
 import com.example.softwareganadero.data.cultivosData.CropRecord
+import com.example.softwareganadero.data.potrerosData.BirthRecord
+import com.example.softwareganadero.data.potrerosData.FemaleCow
+import com.example.softwareganadero.data.potrerosData.HeatDetection
+import com.example.softwareganadero.data.potrerosData.PastureEvaluation
+import com.example.softwareganadero.data.potrerosData.PastureFenceLog
+import com.example.softwareganadero.data.potrerosData.PastureInventory
+import com.example.softwareganadero.data.potrerosData.Precipitation
+import com.example.softwareganadero.data.potrerosData.Supplement
+import com.example.softwareganadero.data.potrerosData.WaterEvaluation
 import com.example.softwareganadero.data.visitasData.InstitutionRecord
 import com.example.softwareganadero.data.visitasData.ParticularRecord
 
@@ -38,7 +47,7 @@ import com.example.softwareganadero.data.visitasData.ParticularRecord
     entities = [
         Producer::class, User::class, FemaleCow::class, BirthRecord::class,
         Precipitation::class, PastureInventory::class,
-        HeatDetection::class, PastureEvaluation::class, WaterEvaluation::class, PastureFenceLog::class,Supplement::class,
+        HeatDetection::class, PastureEvaluation::class, WaterEvaluation::class, PastureFenceLog::class, Supplement::class,
         HealthControl::class, Weighing::class, Palpation::class, TriageRecord::class, InstitutionRecord::class, ParticularRecord::class,
         CropRecord::class,
     ],

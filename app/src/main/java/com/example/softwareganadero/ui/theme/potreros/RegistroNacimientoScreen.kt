@@ -1,4 +1,4 @@
-package com.example.softwareganadero.ui.theme
+package com.example.softwareganadero.ui.theme.potreros
 
 import android.os.Build
 import android.widget.Toast
@@ -40,12 +40,9 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,9 +60,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.softwareganadero.R
 import com.example.softwareganadero.data.AgroDatabase
 import com.example.softwareganadero.dialogs.SuccessDialogDual
-import com.example.softwareganadero.domain.BirthRepository
+import com.example.softwareganadero.domain.potrerosDomain.BirthRepository
 import com.example.softwareganadero.viewmodel.RegistroNacimientosViewModel
-import kotlinx.coroutines.launch
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)

@@ -1,4 +1,4 @@
-package com.example.softwareganadero.ui.theme
+package com.example.softwareganadero.viewmodel
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf

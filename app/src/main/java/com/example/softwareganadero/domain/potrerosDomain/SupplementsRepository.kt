@@ -1,7 +1,7 @@
-package com.example.softwareganadero.domain
+package com.example.softwareganadero.domain.potrerosDomain
 
 import com.example.softwareganadero.data.AgroDatabase
-import com.example.softwareganadero.data.Supplement
+import com.example.softwareganadero.data.potrerosData.Supplement
 
 class SupplementsRepository(private val db: AgroDatabase) {
     private val dao = db.supplementDao()

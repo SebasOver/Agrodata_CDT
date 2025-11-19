@@ -1,5 +1,14 @@
-package com.example.softwareganadero.data
+package com.example.softwareganadero.domain.potrerosDomain
 
+import com.example.softwareganadero.data.AgroDatabase
+import com.example.softwareganadero.data.potrerosData.BirthRecord
+import com.example.softwareganadero.data.potrerosData.HeatDetection
+import com.example.softwareganadero.data.potrerosData.PastureEvaluation
+import com.example.softwareganadero.data.potrerosData.PastureFenceLog
+import com.example.softwareganadero.data.potrerosData.PastureInventory
+import com.example.softwareganadero.data.potrerosData.Precipitation
+import com.example.softwareganadero.data.potrerosData.Supplement
+import com.example.softwareganadero.data.potrerosData.WaterEvaluation
 import com.example.softwareganadero.data.corralesData.HealthControl
 import com.example.softwareganadero.data.corralesData.Palpation
 import com.example.softwareganadero.data.corralesData.TriageRecord

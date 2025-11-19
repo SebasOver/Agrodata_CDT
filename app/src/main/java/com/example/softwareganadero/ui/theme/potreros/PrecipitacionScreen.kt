@@ -1,4 +1,4 @@
-package com.example.softwareganadero.ui.theme
+package com.example.softwareganadero.ui.theme.potreros
 
 import android.os.Build
 import android.widget.Toast
@@ -27,10 +27,11 @@ import androidx.compose.ui.unit.sp
 import com.example.softwareganadero.R
 import com.example.softwareganadero.data.AgroDatabase
 import com.example.softwareganadero.dialogs.SuccessDialogDual
-import com.example.softwareganadero.domain.PrecipitacionRepository
+import com.example.softwareganadero.domain.potrerosDomain.PrecipitacionRepository
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -151,7 +152,7 @@ fun PrecipitacionScreen(
                         try {
                             val nowMillis = System.currentTimeMillis()
                             val nowText =
-                                java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+                                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
                                     .format(
                                         Instant.ofEpochMilli(nowMillis)
                                             .atZone(ZoneId.systemDefault())
@@ -282,7 +283,7 @@ fun PrecipitacionScreen(
                         try {
                             val nowMillis = System.currentTimeMillis()
                             val nowText =
-                                java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+                                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
                                     .format(
                                         Instant.ofEpochMilli(nowMillis)
                                             .atZone(ZoneId.systemDefault())

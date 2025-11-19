@@ -4,8 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import com.example.softwareganadero.data.BirthRecord
-import com.example.softwareganadero.data.WaterEvaluation
+import com.example.softwareganadero.data.potrerosData.BirthRecord
 
 @Dao
 interface BirthRecordDao {

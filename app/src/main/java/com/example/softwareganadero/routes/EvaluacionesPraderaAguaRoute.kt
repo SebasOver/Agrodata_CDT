@@ -8,9 +8,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
 import com.example.softwareganadero.data.AgroDatabase
-import com.example.softwareganadero.domain.PastureEvaluationRepository
-import com.example.softwareganadero.domain.WaterEvaluationRepository
-import com.example.softwareganadero.ui.theme.EvaluacionesPraderaAguaScreen
+import com.example.softwareganadero.domain.potrerosDomain.PastureEvaluationRepository
+import com.example.softwareganadero.domain.potrerosDomain.WaterEvaluationRepository
+import com.example.softwareganadero.ui.theme.potreros.EvaluacionesPraderaAguaScreen
 import kotlinx.coroutines.launch
 
 @RequiresApi(Build.VERSION_CODES.O)

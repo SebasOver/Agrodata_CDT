@@ -3,8 +3,7 @@ package com.example.softwareganadero.dao
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
-import com.example.softwareganadero.data.PastureInventory
-import com.example.softwareganadero.data.Precipitation
+import com.example.softwareganadero.data.potrerosData.PastureInventory
 
 @Dao
 interface PastureInventoryDAO {

@@ -15,7 +15,7 @@ import androidx.navigation.NavController
 import com.example.softwareganadero.data.AgroDatabase
 import com.example.softwareganadero.data.UserRole
 import com.example.softwareganadero.domain.AuthRepository
-import com.example.softwareganadero.ui.theme.WelcomeScreen
+import com.example.softwareganadero.ui.theme.inicio.WelcomeScreen
 import kotlinx.coroutines.launch
 
 @Composable

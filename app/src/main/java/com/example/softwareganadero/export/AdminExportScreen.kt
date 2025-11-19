@@ -1,6 +1,5 @@
 package com.example.softwareganadero.export
 
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -36,8 +35,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.softwareganadero.data.AgroDatabase
-import com.example.softwareganadero.data.AgroRepository
-import com.example.softwareganadero.export.CsvExporter
+import com.example.softwareganadero.domain.potrerosDomain.AgroRepository
 import com.example.softwareganadero.data.UserRole
 import kotlinx.coroutines.launch
 
