@@ -16,19 +16,7 @@ import kotlinx.coroutines.launch
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun EvaluacionesPraderaAguaRoute(nav: NavController) {
-    val ctx = LocalContext.current
-    val db = remember { AgroDatabase.get(ctx) }
-    val pastureRepo = remember { PastureEvaluationRepository(db) }
-    val waterRepo = remember { WaterEvaluationRepository(db) }
-    val scope = rememberCoroutineScope()
-
     EvaluacionesPraderaAguaScreen(
-        onBack = { nav.popBackStack("potreros", inclusive = false) },
-        onGuardarPradera = { kind, rotation, paddock, height, color, ts, tsText ->
-            scope.launch { pastureRepo.save(kind, rotation, paddock, height, color, ts, tsText) }
-        },
-        onGuardarAgua = { availability, temp, ts, tsText ->
-            scope.launch { waterRepo.save(availability, temp, ts, tsText) }
-        }
+        onBack = { nav.popBackStack("potreros", inclusive = false) }
     )
 }

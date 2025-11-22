@@ -48,6 +48,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -60,8 +61,15 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.softwareganadero.R
+import com.example.softwareganadero.data.AgroDatabase
 import com.example.softwareganadero.dialogs.SuccessDialogDual
+import com.example.softwareganadero.domain.potrerosDomain.PastureEvaluationRepository
+import com.example.softwareganadero.domain.potrerosDomain.WaterEvaluationRepository
+import com.example.softwareganadero.viewmodel.EvaluacionesPraderaAguaViewModel
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
@@ -71,42 +79,50 @@ import java.time.format.DateTimeFormatter
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun EvaluacionesPraderaAguaScreen(
-    onBack: () -> Unit,
-    onGuardarPradera: suspend (kind: String, rotation: String, paddock: String, height: String, color: String, ts: Long, tsText: String) -> Unit,
-    onGuardarAgua: suspend (availability: String, temperature: String, ts: Long, tsText: String) -> Unit
+    onBack: () -> Unit
 ) {
     val ctx = LocalContext.current
-    val scope = rememberCoroutineScope()
+    val db = remember { AgroDatabase.get(ctx) }
+    val pastureRepo = remember { PastureEvaluationRepository(db) }
+    val waterRepo = remember { WaterEvaluationRepository(db) }
+
+    val viewModel: EvaluacionesPraderaAguaViewModel = viewModel(
+        factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                return EvaluacionesPraderaAguaViewModel(
+                    db = db,
+                    pastureRepo = pastureRepo,
+                    waterRepo = waterRepo
+                ) as T
+            }
+        }
+    )
+
     val lightBlue = Color(0xFFE6F0FA)
-    val indexAgua = 9
-    //Mostrar mensaje confirmacion
     val listState = rememberLazyListState()
-    var showPraderaSuccess by rememberSaveable { mutableStateOf(false) }
-    var showAguaSuccess by rememberSaveable { mutableStateOf(false) }
-    // Estado Pradera
-    var kind by rememberSaveable { mutableStateOf("Entrada") }        // Entrada/Salida
-    var height by rememberSaveable { mutableStateOf("") }
-    val colores = listOf("verde intenso","verde normal","verde claro")
-    var colorExpanded by rememberSaveable { mutableStateOf(false) }
-    var colorSelected by rememberSaveable { mutableStateOf<String?>(null) }
-
-    // Rotación/Potrero persistentes una sola vez
-    var rotation by rememberSaveable { mutableStateOf("") }
-    var paddock by rememberSaveable { mutableStateOf("") }
-    // Bandera: entrada registrada => ocultar inputs de rotación/potrero
-    var entradaFijada by rememberSaveable { mutableStateOf(false) }
-
-    // Estado Agua
-    var availability by rememberSaveable { mutableStateOf<String?>(null) }
-    var temperature by rememberSaveable { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
+    val indexAgua = 9  // igual que tenías
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("Evaluaciones", fontWeight = FontWeight.Bold) },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) } },
-                actions = { Image(painterResource(R.drawable.logo_blanco), null, Modifier.size(44.dp)) },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White)
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
+                    }
+                },
+                actions = {
+                    Image(
+                        painterResource(R.drawable.logo_blanco),
+                        null,
+                        Modifier.size(44.dp)
+                    )
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color.White
+                )
             )
         },
         containerColor = Color.White
@@ -124,45 +140,61 @@ fun EvaluacionesPraderaAguaScreen(
             }
 
             item {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                    RadioWithLabel("Entrada", selected = kind == "Entrada") { kind = "Entrada" }
-                    RadioWithLabel("Salida", selected = kind == "Salida") { kind = "Salida" }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(24.dp)
+                ) {
+                    RadioWithLabel(
+                        "Entrada",
+                        selected = viewModel.kind == "Entrada"
+                    ) { viewModel.onKindChanged("Entrada") }
+                    RadioWithLabel(
+                        "Salida",
+                        selected = viewModel.kind == "Salida"
+                    ) { viewModel.onKindChanged("Salida") }
                 }
             }
 
-            // Rotación y Potrero: visibles solo si aún no se fijaron
+            // Rotación y Potrero visibles solo si no se fijaron
             item {
                 AnimatedVisibility(
-                    visible = !entradaFijada,
+                    visible = !viewModel.entradaFijada,
                     enter = expandVertically() + fadeIn(),
                     exit = shrinkVertically() + fadeOut()
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text("Rotacion")
                         TextField(
-                            value = rotation,
-                            onValueChange = { rotation = it },
+                            value = viewModel.rotation,
+                            onValueChange = viewModel::onRotationChanged,
                             modifier = Modifier.fillMaxWidth(),
-                            colors = TextFieldDefaults.colors(focusedContainerColor = lightBlue, unfocusedContainerColor = lightBlue),
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = lightBlue,
+                                unfocusedContainerColor = lightBlue
+                            ),
                             singleLine = true
                         )
                         Text("Potrero")
                         TextField(
-                            value = paddock,
-                            onValueChange = { paddock = it },
+                            value = viewModel.paddock,
+                            onValueChange = viewModel::onPaddockChanged,
                             modifier = Modifier.fillMaxWidth(),
-                            colors = TextFieldDefaults.colors(focusedContainerColor = lightBlue, unfocusedContainerColor = lightBlue),
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = lightBlue,
+                                unfocusedContainerColor = lightBlue
+                            ),
                             singleLine = true
                         )
                     }
                 }
             }
 
-            // Si ya se fijaron, muestra resumen compacto para que “Agua” suba
+            // Resumen compacto cuando ya se fijaron
             item {
                 AnimatedVisibility(
-                    visible = entradaFijada,
-                    enter = fadeIn(), exit = fadeOut()
+                    visible = viewModel.entradaFijada,
+                    enter = fadeIn(),
+                    exit = fadeOut()
                 ) {
                     Row(
                         modifier = Modifier
@@ -171,8 +203,8 @@ fun EvaluacionesPraderaAguaScreen(
                             .padding(12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Rotación: $rotation")
-                        Text("Potrero: $paddock")
+                        Text("Rotación: ${viewModel.rotation}")
+                        Text("Potrero: ${viewModel.paddock}")
                     }
                 }
             }
@@ -180,27 +212,55 @@ fun EvaluacionesPraderaAguaScreen(
             item {
                 Text("Altura")
                 TextField(
-                    value = height,
-                    onValueChange = { txt -> if (txt.isEmpty() || txt.matches(Regex("""\d+(\.\d{0,2})?"""))) height = txt },
+                    value = viewModel.height,
+                    onValueChange = viewModel::onHeightChanged,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = TextFieldDefaults.colors(focusedContainerColor = lightBlue, unfocusedContainerColor = lightBlue),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = lightBlue,
+                        unfocusedContainerColor = lightBlue
+                    ),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
             }
 
             item {
-                ExposedDropdownMenuBox(expanded = colorExpanded, onExpandedChange = { colorExpanded = !colorExpanded }, modifier = Modifier.fillMaxWidth()) {
+                var colorExpanded by rememberSaveable { mutableStateOf(false) }
+                ExposedDropdownMenuBox(
+                    expanded = colorExpanded,
+                    onExpandedChange = { colorExpanded = !colorExpanded },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     TextField(
-                        value = colorSelected ?: "Color",
+                        value = viewModel.colorSelected ?: "Color",
                         onValueChange = {},
                         readOnly = true,
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = colorExpanded) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth(),
-                        colors = TextFieldDefaults.colors(focusedContainerColor = lightBlue, unfocusedContainerColor = lightBlue)
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(
+                                expanded = colorExpanded
+                            )
+                        },
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth(),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = lightBlue,
+                            unfocusedContainerColor = lightBlue
+                        )
                     )
-                    ExposedDropdownMenu(expanded = colorExpanded, onDismissRequest = { colorExpanded = false }) {
-                        colores.forEach { c -> DropdownMenuItem(text = { Text(c) }, onClick = { colorSelected = c; colorExpanded = false }) }
+                    ExposedDropdownMenu(
+                        expanded = colorExpanded,
+                        onDismissRequest = { colorExpanded = false }
+                    ) {
+                        viewModel.colores.forEach { c ->
+                            DropdownMenuItem(
+                                text = { Text(c) },
+                                onClick = {
+                                    viewModel.onColorSelected(c)
+                                    colorExpanded = false
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -208,40 +268,26 @@ fun EvaluacionesPraderaAguaScreen(
             item {
                 Button(
                     onClick = {
-                        val r = rotation.trim()
-                        val p = paddock.trim()
-                        if (!entradaFijada) {
-                            if (r.isEmpty()) { Toast.makeText(ctx, "Rotación requerida", Toast.LENGTH_LONG).show(); return@Button }
-                            if (p.isEmpty()) { Toast.makeText(ctx, "Potrero requerido", Toast.LENGTH_LONG).show(); return@Button }
-                        }
-                        val h = height.trim()
-                        val hNum = h.toDoubleOrNull() ?: run {
-                            Toast.makeText(ctx, "Altura numérica requerida", Toast.LENGTH_LONG).show(); return@Button
-                        }
-                        val c = colorSelected?.trim().orEmpty()
-                        if (c.isEmpty()) { Toast.makeText(ctx, "Selecciona un color", Toast.LENGTH_LONG).show(); return@Button }
-
-                        val ts = System.currentTimeMillis()
-                        val tsText = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-                            .format(Instant.ofEpochMilli(ts).atZone(ZoneId.systemDefault()))
-                        scope.launch {
-                            try {
-                                onGuardarPradera(kind, rotation, paddock, h, c, ts, tsText)
-                                height = ""; colorSelected = null
-                                if (kind == "Entrada") {
-                                    entradaFijada = true
-                                    kind = "Salida"
-                                    Toast.makeText(ctx, "Entrada registrada. Continúa con la salida.", Toast.LENGTH_SHORT).show()
-                                } else {
-                                    showPraderaSuccess = true
-                                }
-                            } catch (t: Throwable) {
-                                Toast.makeText(ctx, t.message ?: "Error al guardar pradera", Toast.LENGTH_LONG).show()
+                        viewModel.savePradera(
+                            onError = { msg ->
+                                Toast.makeText(ctx, msg, Toast.LENGTH_LONG).show()
+                            },
+                            onEntradaRegistrada = {
+                                Toast.makeText(
+                                    ctx,
+                                    "Entrada registrada. Continúa con la salida.",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                             }
-                        }
+                        )
                     },
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E73C8), contentColor = Color.White),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF2E73C8),
+                        contentColor = Color.White
+                    ),
                     shape = RoundedCornerShape(24.dp)
                 ) { Text("Guardar") }
             }
@@ -250,16 +296,25 @@ fun EvaluacionesPraderaAguaScreen(
 
             // Evaluación agua
             stickyHeader {
-                // Header pegajoso para que Agua se mantenga visible al desplazarse
                 Surface(color = Color.White) {
-                    Text("Evaluacion agua", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(vertical = 4.dp))
+                    Text(
+                        "Evaluacion agua",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    )
                 }
             }
 
             item {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                    listOf("Escaso","Normal","Suficiente").forEach { label ->
-                        RadioWithLabel(label, selected = availability == label) { availability = label }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(24.dp)
+                ) {
+                    listOf("Escaso", "Normal", "Suficiente").forEach { label ->
+                        RadioWithLabel(
+                            label,
+                            selected = viewModel.availability == label
+                        ) { viewModel.onAvailabilitySelected(label) }
                     }
                 }
             }
@@ -267,10 +322,13 @@ fun EvaluacionesPraderaAguaScreen(
             item {
                 Text("Temperatura")
                 TextField(
-                    value = temperature,
-                    onValueChange = { txt -> if (txt.all { it.isDigit() || it == '.' } || txt.isEmpty()) temperature = txt },
+                    value = viewModel.temperature,
+                    onValueChange = viewModel::onTemperatureChanged,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = TextFieldDefaults.colors(focusedContainerColor = lightBlue, unfocusedContainerColor = lightBlue),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = lightBlue,
+                        unfocusedContainerColor = lightBlue
+                    ),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
@@ -279,27 +337,17 @@ fun EvaluacionesPraderaAguaScreen(
             item {
                 Button(
                     onClick = {
-                        val a = availability ?: run {
-                            Toast.makeText(ctx, "Selecciona disponibilidad de agua", Toast.LENGTH_LONG).show(); return@Button
-                        }
-                        val t = temperature.trim().toDoubleOrNull() ?: run {
-                            Toast.makeText(ctx, "Temperatura numérica requerida", Toast.LENGTH_LONG).show(); return@Button
-                        }
-                        val ts = System.currentTimeMillis()
-                        val tsText = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-                            .format(Instant.ofEpochMilli(ts).atZone(ZoneId.systemDefault()))
-                        scope.launch {
-                            try {
-                                onGuardarAgua(a, t.toString(), ts, tsText)
-                                availability = null; temperature = ""
-                                showAguaSuccess = true
-                            } catch (t2: Throwable) {
-                                Toast.makeText(ctx, t2.message ?: "Error al guardar agua", Toast.LENGTH_LONG).show()
-                            }
+                        viewModel.saveAgua { msg ->
+                            Toast.makeText(ctx, msg, Toast.LENGTH_LONG).show()
                         }
                     },
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E73C8), contentColor = Color.White),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF2E73C8),
+                        contentColor = Color.White
+                    ),
                     shape = RoundedCornerShape(24.dp)
                 ) { Text("Guardar") }
             }
@@ -307,37 +355,39 @@ fun EvaluacionesPraderaAguaScreen(
             item { Spacer(Modifier.height(12.dp)) }
         }
     }
+
     SuccessDialogDual(
-        show = showPraderaSuccess,
+        show = viewModel.showPraderaSuccess,
         title = "Salida guardada",
         message = "Ahora registra la evaluación de agua.",
         primaryText = "Volver",
-        onPrimary = { showPraderaSuccess = false; onBack() },
+        onPrimary = {
+            viewModel.dismissPraderaSuccess()
+            onBack()
+        },
         secondaryText = "Continuar registrando",
         onSecondary = {
-            showPraderaSuccess = false
-            // desplazar a Agua; ajusta el índice del stickyHeader
+            viewModel.dismissPraderaSuccess()
             scope.launch { listState.animateScrollToItem(indexAgua) }
         },
-        onDismiss = { showPraderaSuccess = false }
+        onDismiss = { viewModel.dismissPraderaSuccess() }
     )
 
-// Agua: volver
     SuccessDialogDual(
-        show = showAguaSuccess,
+        show = viewModel.showAguaSuccess,
         title = "Agua guardada",
         message = "Se registró correctamente.",
         primaryText = "Volver",
-        onPrimary = { showAguaSuccess = false; onBack() },
-        secondaryText = "Continuar registrando",
-        onSecondary = {
-            // dejar listo para otro registro de Agua si deseas
-            availability = null; temperature = ""
-            showAguaSuccess = false
+        onPrimary = {
+            viewModel.dismissAguaSuccess()
+            onBack()
         },
-        onDismiss = { showAguaSuccess = false }
+        secondaryText = "Continuar registrando",
+        onSecondary = { viewModel.dismissAguaSuccess() },
+        onDismiss = { viewModel.dismissAguaSuccess() }
     )
 }
+
 
 @Composable
 private fun RadioWithLabel(text: String, selected: Boolean, onClick: () -> Unit) {
