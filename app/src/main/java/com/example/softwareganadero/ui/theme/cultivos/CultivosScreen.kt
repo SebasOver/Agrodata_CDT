@@ -32,6 +32,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -43,8 +44,14 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.softwareganadero.R
+import com.example.softwareganadero.data.AgroDatabase
 import com.example.softwareganadero.dialogs.SuccessDialogDual
+import com.example.softwareganadero.domain.cultivosDomains.CropRepository
+import com.example.softwareganadero.viewmodel.cultivos.CultivosViewModel
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
@@ -53,35 +60,25 @@ import java.time.ZoneId
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CultivosScreen(
-    onBack: () -> Unit,
-    onGuardar: suspend (
-        lot: String,
-        species: String,
-        hasPests: Boolean,
-        hasDiseases: Boolean,
-        notes: String?,
-        ts: Long,
-        tsText: String
-    ) -> Unit
+    onBack: () -> Unit
 ) {
     val ctx = LocalContext.current
-    val scope = rememberCoroutineScope()
+    val db = remember { AgroDatabase.get(ctx) }
+    val repo = remember { CropRepository(db) }
+
+    val viewModel: CultivosViewModel = viewModel(
+        factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                return CultivosViewModel(
+                    db = db,
+                    repo = repo
+                ) as T
+            }
+        }
+    )
+
     val lightBlue = Color(0xFFE6F0FA)
-
-    var lot by rememberSaveable { mutableStateOf("") }
-    var species by rememberSaveable { mutableStateOf("") }
-    var hasPests by rememberSaveable { mutableStateOf(false) }
-    var hasDiseases by rememberSaveable { mutableStateOf(false) }
-    var notes by rememberSaveable { mutableStateOf("") }
-
-    var saving by rememberSaveable { mutableStateOf(false) }
-    var showSuccess by rememberSaveable { mutableStateOf(false) }
-
-    val letters = Regex("^[A-Za-zÁÉÍÓÚÜáéíóúüÑñ ]+$")
-    val lettersAndDigits = Regex("^[A-Za-zÁÉÍÓÚÜáéíóúüÑñ0-9 ]+$")
-
-    val lotOk = lot.isNotBlank() && lot.matches(lettersAndDigits)
-    val speciesOk = species.isNotBlank() && species.matches(letters)
 
     Scaffold(
         topBar = {
@@ -119,15 +116,13 @@ fun CultivosScreen(
             item { Text("Lote") }
             item {
                 TextField(
-                    value = lot,
-                    onValueChange = { s ->
-                        if (s.isEmpty() || s.matches(lettersAndDigits)) lot = s
-                    },
+                    value = viewModel.lot,
+                    onValueChange = viewModel::onLotChanged,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-                    isError = lot.isNotEmpty() && !lotOk,
+                    isError = viewModel.lot.isNotEmpty() && !viewModel.lotOk,
                     supportingText = {
-                        if (lot.isNotEmpty() && !lotOk)
+                        if (viewModel.lot.isNotEmpty() && !viewModel.lotOk)
                             Text("Solo letras, números y espacios")
                     },
                     modifier = Modifier.fillMaxWidth(),
@@ -141,15 +136,13 @@ fun CultivosScreen(
             item { Text("Especie") }
             item {
                 TextField(
-                    value = species,
-                    onValueChange = { s ->
-                        if (s.isEmpty() || s.matches(letters)) species = s
-                    },
+                    value = viewModel.species,
+                    onValueChange = viewModel::onSpeciesChanged,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-                    isError = species.isNotEmpty() && !speciesOk,
+                    isError = viewModel.species.isNotEmpty() && !viewModel.speciesOk,
                     supportingText = {
-                        if (species.isNotEmpty() && !speciesOk)
+                        if (viewModel.species.isNotEmpty() && !viewModel.speciesOk)
                             Text("Solo letras y espacios")
                     },
                     modifier = Modifier.fillMaxWidth(),
@@ -168,8 +161,8 @@ fun CultivosScreen(
                 ) {
                     Text("Plagas")
                     Switch(
-                        checked = hasPests,
-                        onCheckedChange = { hasPests = it }
+                        checked = viewModel.hasPests,
+                        onCheckedChange = viewModel::onHasPestsChanged
                     )
                 }
             }
@@ -182,8 +175,8 @@ fun CultivosScreen(
                 ) {
                     Text("Enfermedades")
                     Switch(
-                        checked = hasDiseases,
-                        onCheckedChange = { hasDiseases = it }
+                        checked = viewModel.hasDiseases,
+                        onCheckedChange = viewModel::onHasDiseasesChanged
                     )
                 }
             }
@@ -191,8 +184,8 @@ fun CultivosScreen(
             item { Text("Observaciones") }
             item {
                 TextField(
-                    value = notes,
-                    onValueChange = { notes = it },
+                    value = viewModel.notes,
+                    onValueChange = viewModel::onNotesChanged,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(120.dp),
@@ -206,62 +199,11 @@ fun CultivosScreen(
             item {
                 Button(
                     onClick = {
-                        if (!lotOk) {
-                            Toast.makeText(
-                                ctx,
-                                "Lote requerido (letras y números)",
-                                Toast.LENGTH_LONG
-                            ).show()
-                            return@Button
-                        }
-                        if (!speciesOk) {
-                            Toast.makeText(
-                                ctx,
-                                "Especie requerida (solo letras)",
-                                Toast.LENGTH_LONG
-                            ).show()
-                            return@Button
-                        }
-                        if (saving || showSuccess) return@Button
-                        saving = true
-
-                        val ts = System.currentTimeMillis()
-                        val tsText =
-                            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-                                .format(
-                                    Instant.ofEpochMilli(ts)
-                                        .atZone(ZoneId.systemDefault())
-                                )
-
-                        scope.launch {
-                            try {
-                                onGuardar(
-                                    lot.trim(),
-                                    species.trim(),
-                                    hasPests,
-                                    hasDiseases,
-                                    notes.ifBlank { null },
-                                    ts,
-                                    tsText
-                                )
-                                lot = ""
-                                species = ""
-                                hasPests = false
-                                hasDiseases = false
-                                notes = ""
-                                showSuccess = true
-                            } catch (e: Throwable) {
-                                Toast.makeText(
-                                    ctx,
-                                    e.message ?: "Error al guardar",
-                                    Toast.LENGTH_LONG
-                                ).show()
-                            } finally {
-                                saving = false
-                            }
+                        viewModel.save { msg ->
+                            Toast.makeText(ctx, msg, Toast.LENGTH_LONG).show()
                         }
                     },
-                    enabled = !saving && !showSuccess,
+                    enabled = !viewModel.saving && !viewModel.showSuccess,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
@@ -271,7 +213,7 @@ fun CultivosScreen(
                         contentColor = Color.White
                     )
                 ) {
-                    Text(if (saving) "Guardando..." else "Guardar")
+                    Text(if (viewModel.saving) "Guardando..." else "Guardar")
                 }
             }
 
@@ -280,13 +222,16 @@ fun CultivosScreen(
     }
 
     SuccessDialogDual(
-        show = showSuccess,
+        show = viewModel.showSuccess,
         title = "Guardado con éxito",
         message = "El cultivo se registró correctamente.",
         primaryText = "Volver",
-        onPrimary = { showSuccess = false; onBack() },
+        onPrimary = {
+            viewModel.dismissSuccess()
+            onBack()
+        },
         secondaryText = "Continuar registrando",
-        onSecondary = { showSuccess = false },
-        onDismiss = { showSuccess = false }
+        onSecondary = { viewModel.dismissSuccess() },
+        onDismiss = { viewModel.dismissSuccess() }
     )
 }
