@@ -13,23 +13,7 @@ import com.example.softwareganadero.ui.theme.corrales.PesajeScreen
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun PesajeRoute(nav: NavController) {
-    val ctx = LocalContext.current
-    val db = remember { AgroDatabase.get(ctx) }
-    val repo = remember { WeighingRepository(db) }
-
     PesajeScreen(
-        onBack = { nav.popBackStack("corrales", inclusive = false) },
-        onGuardar = { sex, number, breed, color, cc, notes, ts, tsText ->
-            repo.save(
-                sex = sex,                 // "M"/"H"
-                animalNumber = number,     // String numérico
-                breed = breed,             // String solo letras
-                color = color,             // String solo letras
-                bodyCondition = cc,        // String libre
-                observations = notes,
-                createdAt = ts,
-                createdAtText = tsText
-            )
-        }
+        onBack = { nav.popBackStack("corrales", inclusive = false) }
     )
 }

@@ -31,11 +31,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -45,58 +41,61 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.softwareganadero.R
+import com.example.softwareganadero.data.AgroDatabase
 import com.example.softwareganadero.dialogs.SuccessDialogDual
-import kotlinx.coroutines.launch
-import java.time.Instant
-import java.time.ZoneId
+import com.example.softwareganadero.domain.corralesDomains.WeighingRepository
+import com.example.softwareganadero.viewmodel.corrales.PesajeViewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PesajeScreen(
-    onBack: () -> Unit,
-    onGuardar: suspend (
-        sex: String,                  // "M" o "H"
-        number: String,               // solo números
-        breed: String,                // solo texto
-        color: String,                // solo texto
-        cc: String,                   // texto o número
-        notes: String?,               // opcional
-        ts: Long,
-        tsText: String
-    ) -> Unit
+    onBack: () -> Unit
 ) {
     val ctx = LocalContext.current
-    val scope = rememberCoroutineScope()
+    val db = remember { AgroDatabase.get(ctx) }
+    val repo = remember { WeighingRepository(db) }
+
+    val viewModel: PesajeViewModel = viewModel(
+        factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                return PesajeViewModel(
+                    db = db,
+                    repo = repo
+                ) as T
+            }
+        }
+    )
+
     val lightBlue = Color(0xFFE6F0FA)
-
-    var sex by rememberSaveable { mutableStateOf<String?>(null) }
-    var animalNumber by rememberSaveable { mutableStateOf("") }
-    var breed by rememberSaveable { mutableStateOf("") }
-    var coatColor by rememberSaveable { mutableStateOf("") }
-    var cc by rememberSaveable { mutableStateOf("") }
-    var notes by rememberSaveable { mutableStateOf("") }
-
-    var saving by rememberSaveable { mutableStateOf(false) }
-    var showSuccess by rememberSaveable { mutableStateOf(false) }
-
-    val onlyLetters = Regex("^[A-Za-zÁÉÍÓÚÜáéíóúüÑñ ]+$")
-    val onlyDigits = Regex("^\\d+$")
-
-    val numberOk = animalNumber.isNotBlank() && animalNumber.matches(onlyDigits)
-    val breedOk = breed.isNotBlank() && breed.matches(onlyLetters)
-    val colorOk = coatColor.isNotBlank() && coatColor.matches(onlyLetters)
-    val ccOk = cc.isNotBlank() // libre: no vacío
-    val sexOk = sex != null
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("Pesaje", fontWeight = FontWeight.Bold) },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver") } },
-                actions = { Image(painterResource(R.drawable.logo_blanco), null, Modifier.size(44.dp)) },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White)
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver"
+                        )
+                    }
+                },
+                actions = {
+                    Image(
+                        painterResource(R.drawable.logo_blanco),
+                        null,
+                        Modifier.size(44.dp)
+                    )
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color.White
+                )
             )
         },
         containerColor = Color.White
@@ -110,137 +109,162 @@ fun PesajeScreen(
         ) {
             item {
                 Text("Sexo")
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(24.dp)
+                ) {
                     Row(
-                        modifier = Modifier.selectable(selected = sex == "M", onClick = { sex = "M" }, role = Role.RadioButton),
+                        modifier = Modifier.selectable(
+                            selected = viewModel.sex == "M",
+                            onClick = { viewModel.onSexChanged("M") },
+                            role = Role.RadioButton
+                        ),
                         verticalAlignment = Alignment.CenterVertically
-                    ) { RadioButton(selected = sex == "M", onClick = null); Text("Macho", modifier = Modifier.padding(start = 6.dp)) }
+                    ) {
+                        RadioButton(selected = viewModel.sex == "M", onClick = null)
+                        Text("Macho", modifier = Modifier.padding(start = 6.dp))
+                    }
                     Row(
-                        modifier = Modifier.selectable(selected = sex == "H", onClick = { sex = "H" }, role = Role.RadioButton),
+                        modifier = Modifier.selectable(
+                            selected = viewModel.sex == "H",
+                            onClick = { viewModel.onSexChanged("H") },
+                            role = Role.RadioButton
+                        ),
                         verticalAlignment = Alignment.CenterVertically
-                    ) { RadioButton(selected = sex == "H", onClick = null); Text("Hembra", modifier = Modifier.padding(start = 6.dp)) }
+                    ) {
+                        RadioButton(selected = viewModel.sex == "H", onClick = null)
+                        Text("Hembra", modifier = Modifier.padding(start = 6.dp))
+                    }
                 }
             }
 
             item { Text("Número animal") }
             item {
                 TextField(
-                    value = animalNumber,
-                    onValueChange = { s -> if (s.isEmpty() || s.matches(Regex("\\d+"))) animalNumber = s },
+                    value = viewModel.animalNumber,
+                    onValueChange = viewModel::onNumberChanged,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    isError = animalNumber.isNotEmpty() && !numberOk,
-                    supportingText = { if (animalNumber.isNotEmpty() && !numberOk) Text("Solo números") },
+                    isError = viewModel.animalNumber.isNotEmpty() && !viewModel.numberOk,
+                    supportingText = {
+                        if (viewModel.animalNumber.isNotEmpty() && !viewModel.numberOk)
+                            Text("Solo números")
+                    },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = TextFieldDefaults.colors(focusedContainerColor = lightBlue, unfocusedContainerColor = lightBlue)
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = lightBlue,
+                        unfocusedContainerColor = lightBlue
+                    )
                 )
             }
 
             item { Text("Raza") }
             item {
                 TextField(
-                    value = breed,
-                    onValueChange = { s -> if (s.isEmpty() || s.matches(onlyLetters)) breed = s },
+                    value = viewModel.breed,
+                    onValueChange = viewModel::onBreedChanged,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-                    isError = breed.isNotEmpty() && !breedOk,
-                    supportingText = { if (breed.isNotEmpty() && !breedOk) Text("Solo letras y espacios") },
+                    isError = viewModel.breed.isNotEmpty() && !viewModel.breedOk,
+                    supportingText = {
+                        if (viewModel.breed.isNotEmpty() && !viewModel.breedOk)
+                            Text("Solo letras y espacios")
+                    },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent)
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent
+                    )
                 )
             }
 
             item { Text("Color") }
             item {
                 TextField(
-                    value = coatColor,
-                    onValueChange = { s -> if (s.isEmpty() || s.matches(onlyLetters)) coatColor = s },
+                    value = viewModel.coatColor,
+                    onValueChange = viewModel::onColorChanged,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-                    isError = coatColor.isNotEmpty() && !colorOk,
-                    supportingText = { if (coatColor.isNotEmpty() && !colorOk) Text("Solo letras y espacios") },
+                    isError = viewModel.coatColor.isNotEmpty() && !viewModel.colorOk,
+                    supportingText = {
+                        if (viewModel.coatColor.isNotEmpty() && !viewModel.colorOk)
+                            Text("Solo letras y espacios")
+                    },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent)
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent
+                    )
                 )
             }
 
             item { Text("C.C (Condición corporal)") }
             item {
                 TextField(
-                    value = cc,
-                    onValueChange = { s -> cc = s }, // libre: número o texto
+                    value = viewModel.cc,
+                    onValueChange = viewModel::onCcChanged,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-                    isError = cc.isNotEmpty() && !ccOk,
+                    isError = viewModel.cc.isNotEmpty() && !viewModel.ccOk,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = TextFieldDefaults.colors(focusedContainerColor = lightBlue, unfocusedContainerColor = lightBlue)
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = lightBlue,
+                        unfocusedContainerColor = lightBlue
+                    )
                 )
             }
 
             item { Text("Observaciones") }
             item {
                 TextField(
-                    value = notes,
-                    onValueChange = { notes = it },
-                    modifier = Modifier.fillMaxWidth().height(120.dp),
-                    colors = TextFieldDefaults.colors(focusedContainerColor = lightBlue, unfocusedContainerColor = lightBlue)
+                    value = viewModel.notes,
+                    onValueChange = viewModel::onNotesChanged,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = lightBlue,
+                        unfocusedContainerColor = lightBlue
+                    )
                 )
             }
 
             item {
                 Button(
                     onClick = {
-                        if (!sexOk) { Toast.makeText(ctx, "Selecciona el sexo", Toast.LENGTH_LONG).show(); return@Button }
-                        if (!numberOk) { Toast.makeText(ctx, "Número animal requerido (solo números)", Toast.LENGTH_LONG).show(); return@Button }
-                        if (!breedOk) { Toast.makeText(ctx, "Raza requerida (solo texto)", Toast.LENGTH_LONG).show(); return@Button }
-                        if (!colorOk) { Toast.makeText(ctx, "Color requerido (solo texto)", Toast.LENGTH_LONG).show(); return@Button }
-                        if (!ccOk) { Toast.makeText(ctx, "C.C requerido", Toast.LENGTH_LONG).show(); return@Button }
-                        if (saving || showSuccess) return@Button
-                        saving = true
-
-                        val ts = System.currentTimeMillis()
-                        val tsText = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-                            .format(Instant.ofEpochMilli(ts).atZone(ZoneId.systemDefault()))
-                        scope.launch {
-                            try {
-                                onGuardar(
-                                    sex!!,
-                                    animalNumber.trim(),
-                                    breed.trim(),
-                                    coatColor.trim(),
-                                    cc.trim(),
-                                    notes.ifBlank { null },
-                                    ts, tsText
-                                )
-                                // limpiar para seguir registrando
-                                animalNumber = ""; breed = ""; coatColor = ""; cc = ""; notes = ""
-                                // mantén el sexo si quieres registrar varios con el mismo valor
-                                showSuccess = true
-                            } catch (e: Throwable) {
-                                Toast.makeText(ctx, e.message ?: "Error al guardar", Toast.LENGTH_LONG).show()
-                            } finally { saving = false }
+                        viewModel.save { msg ->
+                            Toast.makeText(ctx, msg, Toast.LENGTH_LONG).show()
                         }
                     },
-                    enabled = !saving && !showSuccess,
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    enabled = !viewModel.saving && !viewModel.showSuccess,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
                     shape = RoundedCornerShape(28.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E73C8), contentColor = Color.White)
-                ) { Text(if (saving) "Guardando..." else "Guardar") }
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF2E73C8),
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text(if (viewModel.saving) "Guardando..." else "Guardar")
+                }
             }
 
             item { Spacer(Modifier.height(12.dp)) }
         }
     }
 
-    // Diálogo dual
     SuccessDialogDual(
-        show = showSuccess,
+        show = viewModel.showSuccess,
         title = "Guardado con éxito",
         message = "El pesaje se registró correctamente.",
         primaryText = "Volver",
-        onPrimary = { showSuccess = false; onBack() },
+        onPrimary = {
+            viewModel.dismissSuccess()
+            onBack()
+        },
         secondaryText = "Continuar registrando",
-        onSecondary = { showSuccess = false },
-        onDismiss = { showSuccess = false }
+        onSecondary = { viewModel.dismissSuccess() },
+        onDismiss = { viewModel.dismissSuccess() }
     )
 }
