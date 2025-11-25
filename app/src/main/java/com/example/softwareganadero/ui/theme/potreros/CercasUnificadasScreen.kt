@@ -31,6 +31,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -40,131 +41,188 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.softwareganadero.R
+import com.example.softwareganadero.data.AgroDatabase
 import com.example.softwareganadero.dialogs.SuccessDialogDual
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
+import com.example.softwareganadero.domain.potrerosDomain.PastureFenceRepository
+import com.example.softwareganadero.viewmodel.potreros.CercasUnificadasViewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CercasUnificadasScreen(
-    onBack: () -> Unit,
-    onGuardar: (rotacion: String, potrero: String, volteos: String, notes: String?, ts: Long, tsText: String) -> Unit
+    onBack: () -> Unit
 ) {
     val ctx = LocalContext.current
+    val db = remember { AgroDatabase.get(ctx) }
+    val repo = remember { PastureFenceRepository(db) }
+
+    val viewModel: CercasUnificadasViewModel = viewModel(
+        factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                return CercasUnificadasViewModel(
+                    db = db,
+                    repo = repo
+                ) as T
+            }
+        }
+    )
+
     val lightBlue = Color(0xFFE6F0FA)
-    val opcionesVolteos = listOf("1000","3000","5000","7000","9000","11000","13000","15000")
-
-    var rotacion by rememberSaveable { mutableStateOf("") }
-    var potrero by rememberSaveable { mutableStateOf("") }
     var volteosExpanded by rememberSaveable { mutableStateOf(false) }
-    var volteosSeleccion by rememberSaveable { mutableStateOf<String?>(null) }
-    var notes by rememberSaveable { mutableStateOf("") }
-
-    var saving by rememberSaveable { mutableStateOf(false) }
-    var showFenceSuccess by rememberSaveable { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("Cercas", fontWeight = FontWeight.Bold) },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver") } },
-                actions = { Image(painterResource(R.drawable.logo_blanco), null, Modifier.size(44.dp)) },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White)
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver"
+                        )
+                    }
+                },
+                actions = {
+                    Image(
+                        painterResource(R.drawable.logo_blanco),
+                        null,
+                        Modifier.size(44.dp)
+                    )
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color.White
+                )
             )
         },
         containerColor = Color.White
     ) { inner ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(inner).padding(horizontal = 16.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(inner)
+                .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text("Rotacion")
             TextField(
-                value = rotacion, onValueChange = { rotacion = it },
+                value = viewModel.rotacion,
+                onValueChange = viewModel::onRotacionChanged,
                 modifier = Modifier.fillMaxWidth(),
-                colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent
+                ),
                 singleLine = true
             )
 
             Text("Potrero")
             TextField(
-                value = potrero, onValueChange = { potrero = it },
+                value = viewModel.potrero,
+                onValueChange = viewModel::onPotreroChanged,
                 modifier = Modifier.fillMaxWidth(),
-                colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent
+                ),
                 singleLine = true
             )
 
             Text("Volteos")
-            ExposedDropdownMenuBox(expanded = volteosExpanded, onExpandedChange = { volteosExpanded = !volteosExpanded }, modifier = Modifier.fillMaxWidth()) {
+            ExposedDropdownMenuBox(
+                expanded = volteosExpanded,
+                onExpandedChange = { volteosExpanded = !volteosExpanded },
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 TextField(
-                    value = volteosSeleccion ?: "Volteos",
+                    value = viewModel.volteosSeleccion ?: "Volteos",
                     onValueChange = {},
                     readOnly = true,
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = volteosExpanded) },
-                    modifier = Modifier.menuAnchor().fillMaxWidth(),
-                    colors = TextFieldDefaults.colors(focusedContainerColor = lightBlue, unfocusedContainerColor = lightBlue)
+                    trailingIcon = {
+                        ExposedDropdownMenuDefaults.TrailingIcon(
+                            expanded = volteosExpanded
+                        )
+                    },
+                    modifier = Modifier
+                        .menuAnchor()
+                        .fillMaxWidth(),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = lightBlue,
+                        unfocusedContainerColor = lightBlue
+                    )
                 )
-                ExposedDropdownMenu(expanded = volteosExpanded, onDismissRequest = { volteosExpanded = false }) {
-                    opcionesVolteos.forEach { opt ->
-                        DropdownMenuItem(text = { Text(opt) }, onClick = { volteosSeleccion = opt; volteosExpanded = false })
+                ExposedDropdownMenu(
+                    expanded = volteosExpanded,
+                    onDismissRequest = { volteosExpanded = false }
+                ) {
+                    viewModel.opcionesVolteos.forEach { opt ->
+                        DropdownMenuItem(
+                            text = { Text(opt) },
+                            onClick = {
+                                viewModel.onVolteosSelected(opt)
+                                volteosExpanded = false
+                            }
+                        )
                     }
                 }
             }
 
             Text("Observaciones")
             TextField(
-                value = notes, onValueChange = { notes = it },
-                modifier = Modifier.fillMaxWidth().height(112.dp),
-                colors = TextFieldDefaults.colors(focusedContainerColor = lightBlue, unfocusedContainerColor = lightBlue)
+                value = viewModel.notes,
+                onValueChange = viewModel::onNotesChanged,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(112.dp),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = lightBlue,
+                    unfocusedContainerColor = lightBlue
+                )
             )
 
             Button(
                 onClick = {
-                    val r = rotacion.trim()
-                    val p = potrero.trim()
-                    val v = volteosSeleccion?.trim().orEmpty()
-                    when {
-                        r.isEmpty() -> { Toast.makeText(ctx, "Ingresa rotación", Toast.LENGTH_LONG).show(); return@Button }
-                        p.isEmpty() -> { Toast.makeText(ctx, "Ingresa potrero", Toast.LENGTH_LONG).show(); return@Button }
-                        v.isEmpty() -> { Toast.makeText(ctx, "Selecciona volteos", Toast.LENGTH_LONG).show(); return@Button }
-                    }
-                    if (saving) return@Button
-                    saving = true
-                    val ts = System.currentTimeMillis()
-                    val tsText = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-                        .format(Instant.ofEpochMilli(ts).atZone(ZoneId.systemDefault()))
-                    try {
-                        onGuardar(r, p, v, notes.ifBlank { null }, ts, tsText)
-                        // limpieza de campos
-                        rotacion = ""; potrero = ""; volteosSeleccion = null; notes = ""
-                        showFenceSuccess = true // abrir diálogo
-                    } catch (e: Throwable) {
-                        Toast.makeText(ctx, e.message ?: "Error al guardar", Toast.LENGTH_LONG).show()
-                    } finally {
-                        saving = false
+                    viewModel.save { msg ->
+                        Toast.makeText(ctx, msg, Toast.LENGTH_LONG).show()
                     }
                 },
-                enabled = !saving,
-                modifier = Modifier.fillMaxWidth().height(56.dp),
+                enabled = !viewModel.saving,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
                 shape = RoundedCornerShape(28.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E73C8), contentColor = Color.White)
-            ) { Text(if (saving) "Guardando..." else "Guardar", fontSize = 16.sp) }
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF2E73C8),
+                    contentColor = Color.White
+                )
+            ) {
+                Text(
+                    if (viewModel.saving) "Guardando..." else "Guardar",
+                    fontSize = 16.sp
+                )
+            }
         }
     }
 
-    // Diálogo de confirmación
     SuccessDialogDual(
-        show = showFenceSuccess,
+        show = viewModel.showFenceSuccess,
         title = "Cerca guardada",
         message = "El registro se guardó correctamente.",
-        onPrimary = { showFenceSuccess = false; onBack() },
-        onSecondary = {
-            rotacion = ""; potrero = ""; volteosSeleccion = null; notes = ""
-            showFenceSuccess = false
+        primaryText = "Volver",
+        onPrimary = {
+            viewModel.dismissSuccess()
+            onBack()
         },
-        onDismiss = { showFenceSuccess = false }
+        secondaryText = "Continuar registrando",
+        onSecondary = {
+            viewModel.resetForNew()
+        },
+        onDismiss = { viewModel.dismissSuccess() }
     )
 }
+

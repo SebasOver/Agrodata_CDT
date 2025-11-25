@@ -16,22 +16,7 @@ import kotlinx.coroutines.launch
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun CercasUnificadasRoute(nav: NavController) {
-    val ctx = LocalContext.current
-    val db = remember { AgroDatabase.get(ctx) }
-    val repo = remember { PastureFenceRepository(db) }
-    val scope = rememberCoroutineScope()
-
     CercasUnificadasScreen(
-        onBack = { nav.popBackStack("potreros", inclusive = false) },
-        onGuardar = { rot, pot, vol, notes, ts, tsText ->
-            scope.launch {
-                try {
-                    repo.save(rot, pot, vol, notes, ts, tsText)
-                    Toast.makeText(ctx, "Guardado", Toast.LENGTH_LONG).show()
-                } catch (t: Throwable) {
-                    Toast.makeText(ctx, "Error: ${t.message}", Toast.LENGTH_LONG).show()
-                }
-            }
-        }
+        onBack = { nav.popBackStack("potreros", inclusive = false) }
     )
 }
