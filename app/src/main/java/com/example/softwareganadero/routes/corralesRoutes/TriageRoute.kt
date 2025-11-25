@@ -13,14 +13,7 @@ import com.example.softwareganadero.ui.theme.corrales.TriageScreen
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun TriageRoute(nav: NavController) {
-    val ctx = LocalContext.current
-    val db = remember { AgroDatabase.get(ctx) }
-    val repo = remember { TriageRepository(db) }
-
     TriageScreen(
-        onBack = { nav.popBackStack("corrales", inclusive = false) },
-        onGuardar = { number, temp, locomotion, mucosa, notes, ts, tsText ->
-            repo.save(number, temp, locomotion, mucosa, notes, ts, tsText)
-        }
+        onBack = { nav.popBackStack("corrales", inclusive = false) }
     )
 }
