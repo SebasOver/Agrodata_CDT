@@ -1,4 +1,4 @@
-package com.example.softwareganadero.viewmodel
+package com.example.softwareganadero.viewmodel.potreros
 
 import android.os.Build
 import androidx.annotation.RequiresApi
@@ -15,6 +15,7 @@ import com.example.softwareganadero.domain.potrerosDomain.WaterEvaluationReposit
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -76,7 +77,7 @@ class EvaluacionesPraderaAguaViewModel(
 
     private fun nowPair(): Pair<Long, String> {
         val ts = System.currentTimeMillis()
-        val tsText = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+        val tsText = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
             .format(Instant.ofEpochMilli(ts).atZone(ZoneId.systemDefault()))
         return ts to tsText
     }

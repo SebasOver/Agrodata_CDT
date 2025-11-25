@@ -61,7 +61,7 @@ import com.example.softwareganadero.R
 import com.example.softwareganadero.data.AgroDatabase
 import com.example.softwareganadero.dialogs.SuccessDialogDual
 import com.example.softwareganadero.domain.potrerosDomain.BirthRepository
-import com.example.softwareganadero.viewmodel.RegistroNacimientosViewModel
+import com.example.softwareganadero.viewmodel.potreros.RegistroNacimientosViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)

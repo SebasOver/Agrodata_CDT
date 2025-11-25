@@ -1,4 +1,4 @@
-package com.example.softwareganadero.viewmodel
+package com.example.softwareganadero.viewmodel.potreros
 
 import android.os.Build
 import androidx.annotation.RequiresApi
@@ -12,6 +12,7 @@ import com.example.softwareganadero.domain.potrerosDomain.BirthRepository
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 @RequiresApi(Build.VERSION_CODES.O)
 class RegistroNacimientosViewModel(
@@ -94,7 +95,7 @@ class RegistroNacimientosViewModel(
 
     private fun nowPair(): Pair<Long, String> {
         val millis = System.currentTimeMillis()
-        val text = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+        val text = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
             .format(Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()))
         return millis to text
     }

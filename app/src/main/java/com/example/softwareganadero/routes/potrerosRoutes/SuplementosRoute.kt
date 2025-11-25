@@ -1,4 +1,4 @@
-package com.example.softwareganadero.routes
+package com.example.softwareganadero.routes.potrerosRoutes
 
 import android.os.Build
 import androidx.annotation.RequiresApi

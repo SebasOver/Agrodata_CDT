@@ -69,11 +69,8 @@ import com.example.softwareganadero.data.AgroDatabase
 import com.example.softwareganadero.dialogs.SuccessDialogDual
 import com.example.softwareganadero.domain.potrerosDomain.PastureEvaluationRepository
 import com.example.softwareganadero.domain.potrerosDomain.WaterEvaluationRepository
-import com.example.softwareganadero.viewmodel.EvaluacionesPraderaAguaViewModel
+import com.example.softwareganadero.viewmodel.potreros.EvaluacionesPraderaAguaViewModel
 import kotlinx.coroutines.launch
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)

@@ -1,4 +1,4 @@
-package com.example.softwareganadero.routes
+package com.example.softwareganadero.routes.corralesRoutes
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavController

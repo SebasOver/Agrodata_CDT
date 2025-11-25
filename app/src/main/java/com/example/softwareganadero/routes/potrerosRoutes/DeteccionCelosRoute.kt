@@ -1,4 +1,4 @@
-package com.example.softwareganadero.routes
+package com.example.softwareganadero.routes.potrerosRoutes
 
 import android.os.Build
 import androidx.annotation.RequiresApi
@@ -13,17 +13,5 @@ import com.example.softwareganadero.ui.theme.potreros.DeteccionCelosScreen
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun DeteccionCelosRoute(onBack: () -> Unit) {
-    val ctx = LocalContext.current
-    val db = remember { AgroDatabase.get(ctx) }
-    val repo = remember { HeatDetectionRepository(db) }
-    val scope = rememberCoroutineScope()
-
-    DeteccionCelosScreen(
-        onBack = onBack,
-        loadCows = { repo.listCows() },
-        onGuardar = { inHeat, cowTag, notes, ts, tsText ->
-            // Repos ya valida reglas
-            repo.save(inHeat, cowTag, notes, ts, tsText)
-        }
-    )
+    DeteccionCelosScreen(onBack = onBack)
 }

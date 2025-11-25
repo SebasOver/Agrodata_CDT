@@ -45,8 +45,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.softwareganadero.R
+import com.example.softwareganadero.data.AgroDatabase
 import com.example.softwareganadero.dialogs.SuccessDialogDual
+import com.example.softwareganadero.domain.potrerosDomain.HeatDetectionRepository
+import com.example.softwareganadero.viewmodel.potreros.DeteccionCelosViewModel
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
@@ -56,34 +62,48 @@ import java.time.format.DateTimeFormatter
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DeteccionCelosScreen(
-    onBack: () -> Unit,
-    loadCows: suspend () -> List<String>,
-    onGuardar: suspend (inHeat: Boolean, cowTag: String?, notes: String?, createdAtMillis: Long, createdAtText: String) -> Unit
+    onBack: () -> Unit
 ) {
     val ctx = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val lightBlue = Color(0xFFE6F0FA)
+    val db = remember { AgroDatabase.get(ctx) }
+    val repo = remember { HeatDetectionRepository(db) }
 
-    var inHeat by rememberSaveable { mutableStateOf(false) }
-    var cows by remember { mutableStateOf<List<String>>(emptyList()) }
-    var cowExpanded by rememberSaveable { mutableStateOf(false) }
-    var cowSelected by rememberSaveable { mutableStateOf<String?>(null) }
-    var notes by rememberSaveable { mutableStateOf("") }
-    var saving by rememberSaveable { mutableStateOf(false) }
-    var showSuccess by rememberSaveable { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        cows = try { loadCows() } catch (_: Throwable) { emptyList() }
-    }
+    val viewModel: DeteccionCelosViewModel = viewModel(
+        factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                return DeteccionCelosViewModel(
+                    db = db,
+                    repo = repo
+                ) as T
+            }
+        }
+    )
+
+    val lightBlue = Color(0xFFE6F0FA)
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("Deteccion celos", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver") }
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver"
+                        )
+                    }
                 },
-                actions = { Image(painterResource(R.drawable.logo_blanco), null, Modifier.size(44.dp)) },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White)
+                actions = {
+                    Image(
+                        painterResource(R.drawable.logo_blanco),
+                        null,
+                        Modifier.size(44.dp)
+                    )
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color.White
+                )
             )
         },
         containerColor = Color.White
@@ -101,31 +121,48 @@ fun DeteccionCelosScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text("¿Hay vacas en celo?")
-                Switch(checked = inHeat, onCheckedChange = { inHeat = it })
+                Switch(
+                    checked = viewModel.inHeat,
+                    onCheckedChange = viewModel::onInHeatChanged
+                )
             }
 
-            if (inHeat) {
+            var cowExpanded by rememberSaveable { mutableStateOf(false) }
+
+            if (viewModel.inHeat) {
                 ExposedDropdownMenuBox(
                     expanded = cowExpanded,
                     onExpandedChange = { cowExpanded = !cowExpanded },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     TextField(
-                        value = cowSelected ?: "Vaca",
+                        value = viewModel.cowSelected ?: "Vaca",
                         onValueChange = {},
                         readOnly = true,
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(cowExpanded) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(
+                                cowExpanded
+                            )
+                        },
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth(),
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = lightBlue,
                             unfocusedContainerColor = lightBlue
                         )
                     )
-                    ExposedDropdownMenu(expanded = cowExpanded, onDismissRequest = { cowExpanded = false }) {
-                        cows.forEach { tag ->
+                    ExposedDropdownMenu(
+                        expanded = cowExpanded,
+                        onDismissRequest = { cowExpanded = false }
+                    ) {
+                        viewModel.cows.forEach { tag ->
                             DropdownMenuItem(
                                 text = { Text(tag) },
-                                onClick = { cowSelected = tag; cowExpanded = false }
+                                onClick = {
+                                    viewModel.onCowSelected(tag)
+                                    cowExpanded = false
+                                }
                             )
                         }
                     }
@@ -134,8 +171,8 @@ fun DeteccionCelosScreen(
 
             Text("Observaciones")
             TextField(
-                value = notes,
-                onValueChange = { notes = it },
+                value = viewModel.notes,
+                onValueChange = viewModel::onNotesChanged,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(140.dp),
@@ -147,58 +184,36 @@ fun DeteccionCelosScreen(
 
             Button(
                 onClick = {
-                    val cow = if (inHeat) cowSelected?.trim().orEmpty() else null
-                    val n = notes.trim()
-                    if (inHeat) {
-                        if (cow.isNullOrEmpty()) {
-                            Toast.makeText(ctx, "Selecciona la vaca en celo", Toast.LENGTH_LONG).show()
-                            return@Button
-                        }
-                    } else {
-                        if (n.isEmpty()) {
-                            Toast.makeText(ctx, "Ingresa observaciones", Toast.LENGTH_LONG).show()
-                            return@Button
-                        }
-                    }
-                    if (saving) return@Button
-                    saving = true
-
-                    val ts = System.currentTimeMillis()
-                    val tsText = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-                        .format(Instant.ofEpochMilli(ts).atZone(ZoneId.systemDefault()))
-                    scope.launch {
-                        try {
-                            onGuardar(inHeat, cow, if (n.isEmpty()) null else n, ts, tsText)
-                            // Limpieza tras guardar: este caso sí limpia el dropdown
-                            inHeat = false
-                            cowSelected = null
-                            notes = ""
-                            showSuccess = true
-                        } catch (t: Throwable) {
-                            Toast.makeText(ctx, t.message ?: "Error al guardar", Toast.LENGTH_LONG).show()
-                        } finally {
-                            saving = false
-                        }
+                    viewModel.save { msg ->
+                        Toast.makeText(ctx, msg, Toast.LENGTH_LONG).show()
                     }
                 },
-                enabled = !saving && !showSuccess,
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E73C8), contentColor = Color.White),
+                enabled = !viewModel.saving && !viewModel.showSuccess,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF2E73C8),
+                    contentColor = Color.White
+                ),
                 shape = RoundedCornerShape(24.dp)
-            ) { Text(if (saving) "Guardando..." else "Guardar") }
+            ) {
+                Text(if (viewModel.saving) "Guardando..." else "Guardar")
+            }
         }
     }
+
     SuccessDialogDual(
-        show = showSuccess,
+        show = viewModel.showSuccess,
         title = "Guardado con éxito",
         message = "La detección de celo se registró correctamente.",
         primaryText = "Volver",
-        onPrimary = { showSuccess = false; onBack() },
-        secondaryText = "Continuar registrando",
-        onSecondary = {
-            // ya se limpió al guardar; solo cierra el diálogo
-            showSuccess = false
+        onPrimary = {
+            viewModel.dismissSuccess()
+            onBack()
         },
-        onDismiss = { showSuccess = false }
+        secondaryText = "Continuar registrando",
+        onSecondary = { viewModel.dismissSuccess() },
+        onDismiss = { viewModel.dismissSuccess() }
     )
 }

@@ -1,4 +1,4 @@
-package com.example.softwareganadero.viewmodel
+package com.example.softwareganadero.viewmodel.potreros
 
 import android.os.Build
 import androidx.annotation.RequiresApi
