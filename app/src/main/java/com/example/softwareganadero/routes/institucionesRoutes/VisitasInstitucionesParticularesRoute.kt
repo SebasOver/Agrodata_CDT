@@ -14,26 +14,7 @@ import com.example.softwareganadero.ui.theme.visitas.VisitasInstitucionesParticu
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun VisitasInstitucionesParticularesRoute(nav: NavController) {
-    val ctx = LocalContext.current
-    val db = remember { AgroDatabase.get(ctx) }
-    val institutionRepo = remember { InstitutionRepository(db) }
-    val particularRepo = remember { ParticularRepository(db) }
-
     VisitasInstitucionesParticularesScreen(
-        onBack = { nav.popBackStack("visitas", inclusive = false) },
-        onGuardarInstitucion = { name, reason, notes, ts, tsText ->
-            institutionRepo.saveEntry(name, reason, notes, ts, tsText)
-        },
-        onRegistrarSalidaInstitucion = { id, ts, tsText ->
-            institutionRepo.closeVisit(id, ts, tsText)
-        },
-        loadOpenInstituciones = { institutionRepo.getOpenVisits() },
-        onGuardarParticular = { name, reason, notes, ts, tsText ->
-            particularRepo.saveEntry(name, reason, notes, ts, tsText)
-        },
-        onRegistrarSalidaParticular = { id, ts, tsText ->
-            particularRepo.closeVisit(id, ts, tsText)
-        },
-        loadOpenParticulares = { particularRepo.getOpenVisits() }
+        onBack = { nav.popBackStack("visitas", inclusive = false) }
     )
 }
