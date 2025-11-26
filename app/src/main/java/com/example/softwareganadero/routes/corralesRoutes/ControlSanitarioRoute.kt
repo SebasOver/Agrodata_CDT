@@ -12,12 +12,8 @@ import com.example.softwareganadero.ui.theme.corrales.ControlSanitarioScreen
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun ControlSanitarioRoute(nav: NavController, db: AgroDatabase = AgroDatabase.get(LocalContext.current)) {
-    val repo = remember { ControlSanitarioRepository(db) }
+fun ControlSanitarioRoute(nav: NavController) {
     ControlSanitarioScreen(
-        onBack = { nav.popBackStack("corrales", inclusive = false) },
-        onGuardar = { tratamiento, animal, medicamentos, dosis, cantidad, obs, ts, tsText ->
-            repo.save(tratamiento, animal, medicamentos, dosis, cantidad, obs, ts, tsText)
-        }
+        onBack = { nav.popBackStack("corrales", inclusive = false) }
     )
 }

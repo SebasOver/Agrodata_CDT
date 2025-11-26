@@ -28,11 +28,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -40,41 +36,54 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.softwareganadero.R
+import com.example.softwareganadero.data.AgroDatabase
 import com.example.softwareganadero.dialogs.SuccessDialogDual
-import kotlinx.coroutines.launch
-import java.time.Instant
-import java.time.ZoneId
-
+import com.example.softwareganadero.domain.corralesDomains.ControlSanitarioRepository
+import com.example.softwareganadero.viewmodel.corrales.ControlSanitarioViewModel
+import androidx.lifecycle.ViewModelProvider
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ControlSanitarioScreen(
-    onBack: () -> Unit,
-    onGuardar: suspend (tratamiento: String, animal: String, medicamentos: String, dosis: String, cantidad: Double, obs: String?, ts: Long, tsText: String) -> Unit
+    onBack: () -> Unit
 ) {
     val ctx = LocalContext.current
-    val scope = rememberCoroutineScope()
+    val db = remember { AgroDatabase.get(ctx) }
+    val repo = remember { ControlSanitarioRepository(db) }
+
+    val viewModel: ControlSanitarioViewModel = viewModel(
+        factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                return ControlSanitarioViewModel(
+                    db = db,
+                    repo = repo
+                ) as T
+            }
+        }
+    )
+
     val lightBlue = Color(0xFFE6F0FA)
-
-    var tratamiento by rememberSaveable { mutableStateOf("") }
-    var animal by rememberSaveable { mutableStateOf("") }
-    var medicamentos by rememberSaveable { mutableStateOf("") }
-    var dosis by rememberSaveable { mutableStateOf("") }
-    var cantidad by rememberSaveable { mutableStateOf("") }
-    var observaciones by rememberSaveable { mutableStateOf("") }
-
-    var saving by rememberSaveable { mutableStateOf(false) }
-    var showSuccess by rememberSaveable { mutableStateOf(false) }
-
-    val cantidadOk = cantidad.isNotBlank() && cantidad.matches(Regex("""\d+(\.\d{1,2})?"""))
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("Control sanitario", fontWeight = FontWeight.Bold) },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver") } },
-                actions = { Image(painterResource(R.drawable.logo_blanco), null, Modifier.size(44.dp)) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                    }
+                },
+                actions = {
+                    Image(
+                        painterResource(R.drawable.logo_blanco),
+                        null,
+                        Modifier.size(44.dp)
+                    )
+                },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White)
             )
         },
@@ -90,10 +99,13 @@ fun ControlSanitarioScreen(
             item { Text("Tratamiento") }
             item {
                 TextField(
-                    value = tratamiento,
-                    onValueChange = { tratamiento = it }, // alfanumérico libre
+                    value = viewModel.tratamiento,
+                    onValueChange = viewModel::onTratamientoChanged,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent
+                    ),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
                 )
@@ -102,10 +114,13 @@ fun ControlSanitarioScreen(
             item { Text("Animal") }
             item {
                 TextField(
-                    value = animal,
-                    onValueChange = { animal = it },
+                    value = viewModel.animal,
+                    onValueChange = viewModel::onAnimalChanged,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent
+                    ),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
                 )
@@ -114,10 +129,13 @@ fun ControlSanitarioScreen(
             item { Text("Medicamentos") }
             item {
                 TextField(
-                    value = medicamentos,
-                    onValueChange = { medicamentos = it },
+                    value = viewModel.medicamentos,
+                    onValueChange = viewModel::onMedicamentosChanged,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent
+                    ),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
                 )
@@ -126,10 +144,13 @@ fun ControlSanitarioScreen(
             item { Text("Dosis") }
             item {
                 TextField(
-                    value = dosis,
-                    onValueChange = { dosis = it },
+                    value = viewModel.dosis,
+                    onValueChange = viewModel::onDosisChanged,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = TextFieldDefaults.colors(focusedContainerColor = lightBlue, unfocusedContainerColor = lightBlue),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = lightBlue,
+                        unfocusedContainerColor = lightBlue
+                    ),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
                 )
@@ -138,77 +159,62 @@ fun ControlSanitarioScreen(
             item { Text("Cantidad") }
             item {
                 TextField(
-                    value = cantidad,
-                    onValueChange = { s -> if (s.isEmpty() || s.matches(Regex("""\d+(\.\d{0,2})?"""))) cantidad = s },
+                    value = viewModel.cantidad,
+                    onValueChange = viewModel::onCantidadChanged,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = TextFieldDefaults.colors(focusedContainerColor = lightBlue, unfocusedContainerColor = lightBlue),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = lightBlue,
+                        unfocusedContainerColor = lightBlue
+                    ),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    isError = cantidad.isNotEmpty() && !cantidadOk,
-                    supportingText = { if (cantidad.isNotEmpty() && !cantidadOk) Text("Número, hasta 2 decimales") }
+                    isError = viewModel.cantidad.isNotEmpty() && !viewModel.cantidadOk,
+                    supportingText = { if (viewModel.cantidad.isNotEmpty() && !viewModel.cantidadOk) Text("Número, hasta 2 decimales") }
                 )
             }
 
             item { Text("Observaciones") }
             item {
                 TextField(
-                    value = observaciones,
-                    onValueChange = { observaciones = it },
+                    value = viewModel.observaciones,
+                    onValueChange = viewModel::onObservacionesChanged,
                     modifier = Modifier.fillMaxWidth().height(120.dp),
-                    colors = TextFieldDefaults.colors(focusedContainerColor = lightBlue, unfocusedContainerColor = lightBlue)
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = lightBlue,
+                        unfocusedContainerColor = lightBlue
+                    )
                 )
             }
 
             item {
                 Button(
                     onClick = {
-                        val t = tratamiento.trim()
-                        val a = animal.trim()
-                        val m = medicamentos.trim()
-                        val d = dosis.trim()
-                        val c = cantidad.trim().toDoubleOrNull()
-                        if (t.isEmpty()) { Toast.makeText(ctx, "Tratamiento requerido", Toast.LENGTH_LONG).show(); return@Button }
-                        if (a.isEmpty()) { Toast.makeText(ctx, "Animal requerido", Toast.LENGTH_LONG).show(); return@Button }
-                        if (m.isEmpty()) { Toast.makeText(ctx, "Medicamentos requeridos", Toast.LENGTH_LONG).show(); return@Button }
-                        if (d.isEmpty()) { Toast.makeText(ctx, "Dosis requerida", Toast.LENGTH_LONG).show(); return@Button }
-                        if (c == null) { Toast.makeText(ctx, "Cantidad numérica requerida", Toast.LENGTH_LONG).show(); return@Button }
-                        if (saving || showSuccess) return@Button
-                        saving = true
-
-                        val ts = System.currentTimeMillis()
-                        val tsText = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-                            .format(Instant.ofEpochMilli(ts).atZone(ZoneId.systemDefault()))
-                        scope.launch {
-                            try {
-                                onGuardar(t, a, m, d, c, observaciones.ifBlank { null }, ts, tsText)
-                                // limpieza para continuar registrando
-                                tratamiento = ""; animal = ""; medicamentos = ""; dosis = ""; cantidad = ""; observaciones = ""
-                                showSuccess = true
-                            } catch (e: Throwable) {
-                                Toast.makeText(ctx, e.message ?: "Error al guardar", Toast.LENGTH_LONG).show()
-                            } finally { saving = false }
+                        viewModel.save { msg ->
+                            Toast.makeText(ctx, msg, Toast.LENGTH_LONG).show()
                         }
                     },
-                    enabled = !saving && !showSuccess,
+                    enabled = !viewModel.saving && !viewModel.showSuccess,
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     shape = RoundedCornerShape(28.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E73C8), contentColor = Color.White)
-                ) { Text(if (saving) "Guardando..." else "Guardar") }
+                ) { Text(if (viewModel.saving) "Guardando..." else "Guardar") }
             }
 
             item { Spacer(Modifier.height(12.dp)) }
         }
     }
 
-    // Diálogo dual
     SuccessDialogDual(
-        show = showSuccess,
+        show = viewModel.showSuccess,
         title = "Guardado con éxito",
         message = "El control sanitario se registró correctamente.",
         primaryText = "Volver",
-        onPrimary = { showSuccess = false; onBack() },
+        onPrimary = {
+            viewModel.dismissSuccess()
+            onBack()
+        },
         secondaryText = "Continuar registrando",
-        onSecondary = { showSuccess = false /* ya se limpiaron campos tras guardar */ },
-        onDismiss = { showSuccess = false }
+        onSecondary = { viewModel.dismissSuccess() },
+        onDismiss = { viewModel.dismissSuccess() }
     )
 }
