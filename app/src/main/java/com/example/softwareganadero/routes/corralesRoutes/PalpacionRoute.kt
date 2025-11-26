@@ -13,14 +13,7 @@ import com.example.softwareganadero.ui.theme.corrales.PalpacionScreen
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun PalpacionRoute(nav: NavController) {
-    val ctx = LocalContext.current
-    val db = remember { AgroDatabase.get(ctx) }
-    val repo = remember { PalpationRepository(db) }
-
     PalpacionScreen(
-        onBack = { nav.popBackStack("corrales", inclusive = false) },
-        onGuardar = { number, days, notes, ts, tsText ->
-            repo.save(number, days, notes, ts, tsText)
-        }
+        onBack = { nav.popBackStack("corrales", inclusive = false) }
     )
 }

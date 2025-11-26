@@ -28,11 +28,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -40,40 +36,57 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.softwareganadero.R
+import com.example.softwareganadero.data.AgroDatabase
 import com.example.softwareganadero.dialogs.SuccessDialogDual
-import kotlinx.coroutines.launch
-import java.time.Instant
-import java.time.ZoneId
-
+import com.example.softwareganadero.domain.corralesDomains.PalpationRepository
+import com.example.softwareganadero.viewmodel.corrales.PalpacionViewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PalpacionScreen(
-    onBack: () -> Unit,
-    onGuardar: suspend (animalNumber: String, pregnancyDays: Int, observations: String?, ts: Long, tsText: String) -> Unit
+    onBack: () -> Unit
 ) {
     val ctx = LocalContext.current
-    val scope = rememberCoroutineScope()
+    val db = remember { AgroDatabase.get(ctx) }
+    val repo = remember { PalpationRepository(db) }
+
+    val viewModel: PalpacionViewModel = viewModel(
+        factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                return PalpacionViewModel(
+                    db = db,
+                    repo = repo
+                ) as T
+            }
+        }
+    )
+
     val lightBlue = Color(0xFFE6F0FA)
-
-    var animalNumber by rememberSaveable { mutableStateOf("") }
-    var pregnancyDays by rememberSaveable { mutableStateOf("") }
-    var observations by rememberSaveable { mutableStateOf("") }
-
-    var saving by rememberSaveable { mutableStateOf(false) }
-    var showSuccess by rememberSaveable { mutableStateOf(false) }
-
-    val numberOk = animalNumber.isNotBlank() && animalNumber.all { it.isDigit() }
-    val daysOk = pregnancyDays.isNotBlank() && pregnancyDays.all { it.isDigit() }
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("Palpación", fontWeight = FontWeight.Bold) },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver") } },
-                actions = { Image(painterResource(R.drawable.logo_blanco), null, Modifier.size(44.dp)) },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White)
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                    }
+                },
+                actions = {
+                    Image(
+                        painterResource(R.drawable.logo_blanco),
+                        null,
+                        Modifier.size(44.dp)
+                    )
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color.White
+                )
             )
         },
         containerColor = Color.White
@@ -88,26 +101,29 @@ fun PalpacionScreen(
             item { Text("Número de animal") }
             item {
                 TextField(
-                    value = animalNumber,
-                    onValueChange = { s -> if (s.isEmpty() || s.all { it.isDigit() }) animalNumber = s },
+                    value = viewModel.animalNumber,
+                    onValueChange = viewModel::onNumberChanged,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    isError = animalNumber.isNotEmpty() && !numberOk,
-                    supportingText = { if (animalNumber.isNotEmpty() && !numberOk) Text("Solo números") },
+                    isError = viewModel.animalNumber.isNotEmpty() && !viewModel.numberOk,
+                    supportingText = { if (viewModel.animalNumber.isNotEmpty() && !viewModel.numberOk) Text("Solo números") },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent)
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent
+                    )
                 )
             }
 
             item { Text("Días de preñez") }
             item {
                 TextField(
-                    value = pregnancyDays,
-                    onValueChange = { s -> if (s.isEmpty() || s.all { it.isDigit() }) pregnancyDays = s },
+                    value = viewModel.pregnancyDays,
+                    onValueChange = viewModel::onDaysChanged,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    isError = pregnancyDays.isNotEmpty() && !daysOk,
-                    supportingText = { if (pregnancyDays.isNotEmpty() && !daysOk) Text("Solo números") },
+                    isError = viewModel.pregnancyDays.isNotEmpty() && !viewModel.daysOk,
+                    supportingText = { if (viewModel.pregnancyDays.isNotEmpty() && !viewModel.daysOk) Text("Solo números") },
                     modifier = Modifier.fillMaxWidth(),
                     colors = TextFieldDefaults.colors(focusedContainerColor = lightBlue, unfocusedContainerColor = lightBlue)
                 )
@@ -116,8 +132,8 @@ fun PalpacionScreen(
             item { Text("Observaciones") }
             item {
                 TextField(
-                    value = observations,
-                    onValueChange = { observations = it },
+                    value = viewModel.observations,
+                    onValueChange = viewModel::onObservationsChanged,
                     modifier = Modifier.fillMaxWidth().height(120.dp),
                     colors = TextFieldDefaults.colors(focusedContainerColor = lightBlue, unfocusedContainerColor = lightBlue)
                 )
@@ -126,30 +142,15 @@ fun PalpacionScreen(
             item {
                 Button(
                     onClick = {
-                        if (!numberOk) { Toast.makeText(ctx, "Número de animal requerido y numérico", Toast.LENGTH_LONG).show(); return@Button }
-                        if (!daysOk) { Toast.makeText(ctx, "Días de preñez requerido y numérico", Toast.LENGTH_LONG).show(); return@Button }
-                        if (saving || showSuccess) return@Button
-                        saving = true
-
-                        val ts = System.currentTimeMillis()
-                        val tsText = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-                            .format(Instant.ofEpochMilli(ts).atZone(ZoneId.systemDefault()))
-                        scope.launch {
-                            try {
-                                onGuardar(animalNumber.trim(), pregnancyDays.toInt(), observations.ifBlank { null }, ts, tsText)
-                                // limpiar para otro registro
-                                animalNumber = ""; pregnancyDays = ""; observations = ""
-                                showSuccess = true
-                            } catch (e: Throwable) {
-                                Toast.makeText(ctx, e.message ?: "Error al guardar", Toast.LENGTH_LONG).show()
-                            } finally { saving = false }
+                        viewModel.save { msg ->
+                            Toast.makeText(ctx, msg, Toast.LENGTH_LONG).show()
                         }
                     },
-                    enabled = !saving && !showSuccess,
+                    enabled = !viewModel.saving && !viewModel.showSuccess,
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     shape = RoundedCornerShape(28.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E73C8), contentColor = Color.White)
-                ) { Text(if (saving) "Guardando..." else "Guardar") }
+                ) { Text(if (viewModel.saving) "Guardando..." else "Guardar") }
             }
 
             item { Spacer(Modifier.height(12.dp)) }
@@ -157,13 +158,16 @@ fun PalpacionScreen(
     }
 
     SuccessDialogDual(
-        show = showSuccess,
+        show = viewModel.showSuccess,
         title = "Guardado con éxito",
         message = "La palpación se registró correctamente.",
         primaryText = "Volver",
-        onPrimary = { showSuccess = false; onBack() },
+        onPrimary = {
+            viewModel.dismissSuccess()
+            onBack()
+        },
         secondaryText = "Continuar registrando",
-        onSecondary = { showSuccess = false },
-        onDismiss = { showSuccess = false }
+        onSecondary = { viewModel.dismissSuccess() },
+        onDismiss = { viewModel.dismissSuccess() }
     )
 }
