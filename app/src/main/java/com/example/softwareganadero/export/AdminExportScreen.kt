@@ -37,25 +37,39 @@ import androidx.compose.ui.unit.dp
 import com.example.softwareganadero.data.AgroDatabase
 import com.example.softwareganadero.domain.potrerosDomain.AgroRepository
 import com.example.softwareganadero.data.UserRole
+import com.example.softwareganadero.data.sync.SyncManager
+import com.example.softwareganadero.domain.potrerosDomain.BirthRepository
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminExportScreen(
     currentUserName: String,
-    onBack: () -> Unit,                // para volver a WelcomeScreen
-    adminEmail: String                 // correo del administrador
+    onBack: () -> Unit,
+    adminEmail: String
 ) {
     val ctx = LocalContext.current
     val db = remember { AgroDatabase.get(ctx) }
-    val repo = remember { AgroRepository(db) }
-    val exporter = remember { CsvExporter(ctx, repo) }
+    val agroRepo = remember { AgroRepository(db) }
+
+    // Firestore + repos necesarios para sync
+    val firestore = remember { com.google.firebase.firestore.FirebaseFirestore.getInstance() }
+    val birthRepo = remember { BirthRepository(db, firestore) } // de momento solo nacimientos
+
+    // SyncManager global (irá creciendo con más repos)
+    val syncManager = remember {
+        SyncManager(
+            birthRepository = birthRepo
+            // cuando tengas más repos con syncTwoWay(), los añades al constructor
+        )
+    }
+
+    val exporter = remember { CsvExporter(ctx, agroRepo) }
     val scope = rememberCoroutineScope()
 
     var sending by rememberSaveable { mutableStateOf(false) }
     var showSuccess by rememberSaveable { mutableStateOf(false) }
 
-    // Verificación defensiva de rol
     LaunchedEffect(currentUserName) {
         val user = db.userDao().findActiveByName(currentUserName)
         if (user?.role != UserRole.ADMIN) {
@@ -99,48 +113,65 @@ fun AdminExportScreen(
                         "con toda la información registrada."
             )
             Spacer(Modifier.height(24.dp))
-            Button(onClick = {
-                if (sending) return@Button
-                sending = true
-                scope.launch {
-                    try {
-                        // Generar todos los CSV en sus carpetas
-                        exporter.cleanupAllReportCsv()
-                        exporter.exportPrecipitationsCsv()
-                        exporter.exportPastureInventoriesCsv()
-                        exporter.exportPastureEvaluationsCsv()
-                        exporter.exportWaterEvaluationsCsv()
-                        exporter.exportPastureFenceLogsCsv()
-                        exporter.exportSupplementsCsv()
-                        exporter.exportBirthRecordsCsv()
-                        exporter.exportHeatDetectionsCsv()
-                        exporter.exportCropsCsv()
-                        exporter.exportHealthControlCsv()
-                        exporter.exportPalpationsCsv()
-                        exporter.exportTriageCsv()
-                        exporter.exportWeighingsCsv()
-                        exporter.exportInstitutionVisitsCsv()
-                        exporter.exportParticularVisitsCsv()
-                        // ... y los que falten de otras vistas
+            Button(
+                onClick = {
+                    if (sending) return@Button
+                    sending = true
+                    scope.launch {
+                        try {
+                            // 1) Sincronizar toda la base antes de exportar
+                            try {
+                                syncManager.syncAll()
+                            } catch (e: Throwable) {
+                                // Si falla la sync, lo notificas pero aún puedes exportar lo local
+                                Toast.makeText(
+                                    ctx,
+                                    e.message ?: "Error al sincronizar datos (se exportará lo local)",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
 
-                        // Comprimir toda Agrodata en un solo ZIP
-                        val zip = exporter.zipAgrodataDirectory()
+                            // 2) Generar todos los CSV
+                            exporter.cleanupAllReportCsv()
+                            exporter.exportPrecipitationsCsv()
+                            exporter.exportPastureInventoriesCsv()
+                            exporter.exportPastureEvaluationsCsv()
+                            exporter.exportWaterEvaluationsCsv()
+                            exporter.exportPastureFenceLogsCsv()
+                            exporter.exportSupplementsCsv()
+                            exporter.exportBirthRecordsCsv()
+                            exporter.exportHeatDetectionsCsv()
+                            exporter.exportCropsCsv()
+                            exporter.exportHealthControlCsv()
+                            exporter.exportPalpationsCsv()
+                            exporter.exportTriageCsv()
+                            exporter.exportWeighingsCsv()
+                            exporter.exportInstitutionVisitsCsv()
+                            exporter.exportParticularVisitsCsv()
 
-                        sendZipByEmail(
-                            context = ctx,
-                            file = zip,
-                            to = "johansebastiantarazonadiaz@gmail.com",
-                            subject = "Reporte diario Agrodata",
-                            body = "Adjunto encontrarás un ZIP con los diferentes reportes del CDT."
-                        )
+                            // 3) Comprimir Agrodata en un ZIP
+                            val zip = exporter.zipAgrodataDirectory()
 
-                        showSuccess = true
-                    } catch (e: Throwable) {
-                        Toast.makeText(ctx, e.message ?: "Error al preparar el reporte", Toast.LENGTH_LONG).show()
-                    } finally {
-                        sending = false
+                            // 4) Abrir app de correo con el ZIP adjunto
+                            sendZipByEmail(
+                                context = ctx,
+                                file = zip,
+                                to = adminEmail,
+                                subject = "Reporte diario Agrodata",
+                                body = "Adjunto encontrarás un ZIP con los diferentes reportes del CDT."
+                            )
+
+                            showSuccess = true
+                        } catch (e: Throwable) {
+                            Toast.makeText(
+                                ctx,
+                                e.message ?: "Error al preparar el reporte",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        } finally {
+                            sending = false
+                        }
                     }
-                }
                 },
                 enabled = !sending,
                 modifier = Modifier
@@ -167,5 +198,4 @@ fun AdminExportScreen(
             }
         )
     }
-
 }
