@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "739059768142",
+    "project_id": "agrodata-3ffb3",
+    "storage_bucket": "agrodata-3ffb3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:739059768142:android:6197804c9eb39889251c1f",
+        "android_client_info": {
+          "package_name": "com.example.softwareganadero.dev"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB8kCcCHE3yimABL_nVZ7_w8McA8L9TPW4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

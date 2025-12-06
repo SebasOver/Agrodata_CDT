@@ -48,25 +48,20 @@ class RegistroNacimientosViewModel(
         private set
 
     init {
-        // Cargar vacas activas al iniciar
         viewModelScope.launch {
             cows = db.femaleCowDao().listActive().map { it.tag }
         }
     }
 
-    // --------- Setters llamados desde la UI ---------
+    // --------- Setters UI ---------
 
-    fun onCowSelected(tag: String) {
-        cowTag = tag
-    }
+    fun onCowSelected(tag: String) { cowTag = tag }
 
     fun onCalfChanged(text: String) {
         if (text.all { it.isDigit() }) calfTag = text
     }
 
-    fun onSexChanged(value: String) {
-        sex = value
-    }
+    fun onSexChanged(value: String) { sex = value }
 
     fun onColorChanged(text: String) {
         val ok = text.isEmpty() || text.matches(
@@ -81,17 +76,13 @@ class RegistroNacimientosViewModel(
         }
     }
 
-    fun onColostrumChanged(value: Boolean) {
-        colostrum = value
-    }
+    fun onColostrumChanged(value: Boolean) { colostrum = value }
 
-    fun onNotesChanged(text: String) {
-        notes = text
-    }
-    fun dismissSuccess() {
-        showSuccess = false
-    }
-    // --------- Guardar ---------
+    fun onNotesChanged(text: String) { notes = text }
+
+    fun dismissSuccess() { showSuccess = false }
+
+    // --------- Fechas ---------
 
     private fun nowPair(): Pair<Long, String> {
         val millis = System.currentTimeMillis()
@@ -99,6 +90,8 @@ class RegistroNacimientosViewModel(
             .format(Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()))
         return millis to text
     }
+
+    // --------- Guardar nacimiento (Room + marcado para sync) ---------
 
     fun saveBirth(onError: (String) -> Unit) {
         val cow = cowTag?.trim().orEmpty()
@@ -131,16 +124,34 @@ class RegistroNacimientosViewModel(
                     color = colorTxt,
                     weight = weightTxt,
                     colostrum = colostrum,
-                    notes = notes,
+                    notes = notes.ifBlank { null },
                     operatorName = operatorName,
-                    createdAtText = text,
-                    createdAtMillis = millis
+                    createdAt = millis,        // nombre correcto
+                    createdAtText = text       // nombre correcto
                 )
+                // Opcional: limpiar campos para siguiente registro
+                resetForNew()
                 showSuccess = true
             } catch (t: Throwable) {
                 onError(t.message ?: "Error desconocido")
             } finally {
                 saving = false
+            }
+        }
+    }
+
+    // --------- Sincronizar con Firestore ---------
+
+    fun syncBirths(
+        onError: (String) -> Unit,
+        onSuccess: () -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                birthRepo.syncBirthsTwoWay()
+                onSuccess()
+            } catch (t: Throwable) {
+                onError(t.message ?: "Error al sincronizar nacimientos")
             }
         }
     }
@@ -155,7 +166,7 @@ class RegistroNacimientosViewModel(
         colostrum = false
         notes = ""
         showSuccess = false
-        // vaca seleccionada se mantiene
+        // se mantiene cowTag para registrar varios de la misma vaca
     }
 
     fun resetAndClearCow() {

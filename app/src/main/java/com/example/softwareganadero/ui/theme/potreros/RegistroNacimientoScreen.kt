@@ -72,9 +72,9 @@ fun RegistroNacimientosScreen(
 ) {
     val ctx = LocalContext.current
     val db: AgroDatabase = remember { AgroDatabase.get(ctx) }
-    val birthRepo = remember { BirthRepository(db) }
+    val firestore = remember { com.google.firebase.firestore.FirebaseFirestore.getInstance() }
+    val birthRepo = remember { BirthRepository(db, firestore) }
 
-    // Crear ViewModel con factory sencilla
     val viewModel: RegistroNacimientosViewModel = viewModel(
         factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
@@ -166,7 +166,6 @@ fun RegistroNacimientosScreen(
                 }
             }
 
-            // Cría
             Text("Cría")
             TextField(
                 value = viewModel.calfTag,
@@ -180,7 +179,6 @@ fun RegistroNacimientosScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
 
-            // Sexo
             Text("Sexo")
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Row(
@@ -208,7 +206,6 @@ fun RegistroNacimientosScreen(
                 }
             }
 
-            // Color
             Text("Color")
             TextField(
                 value = viewModel.color,
@@ -222,7 +219,6 @@ fun RegistroNacimientosScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
             )
 
-            // Peso
             Text("Peso")
             TextField(
                 value = viewModel.weight,
@@ -236,7 +232,6 @@ fun RegistroNacimientosScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
 
-            // Calostro
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -249,7 +244,6 @@ fun RegistroNacimientosScreen(
                 )
             }
 
-            // Observaciones
             Text("Observaciones")
             TextField(
                 value = viewModel.notes,
@@ -286,6 +280,25 @@ fun RegistroNacimientosScreen(
                     text = if (viewModel.saving) "Guardando..." else "Guardar",
                     fontSize = 16.sp
                 )
+            }
+            Button(
+                onClick = {
+                    viewModel.syncBirths(
+                        onError = { msg -> Toast.makeText(ctx, msg, Toast.LENGTH_LONG).show() },
+                        onSuccess = { Toast.makeText(ctx, "Sincronización completa", Toast.LENGTH_LONG).show() }
+                    )
+                },
+                enabled = !viewModel.saving,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(24.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF4CAF50),
+                    contentColor = Color.White
+                )
+            ) {
+                Text("Sincronizar nacimientos")
             }
 
             Spacer(Modifier.height(16.dp))

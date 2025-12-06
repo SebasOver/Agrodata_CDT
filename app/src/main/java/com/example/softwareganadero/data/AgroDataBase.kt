@@ -51,7 +51,7 @@ import com.example.softwareganadero.data.visitasData.ParticularRecord
         HealthControl::class, Weighing::class, Palpation::class, TriageRecord::class, InstitutionRecord::class, ParticularRecord::class,
         CropRecord::class,
     ],
-    version = 27,
+    version = 28,
     exportSchema = true
 )    abstract class AgroDatabase : RoomDatabase() {
     abstract fun producerDao(): ProducerDao
@@ -585,6 +585,30 @@ import com.example.softwareganadero.data.visitasData.ParticularRecord
                 )
             }
         }
+        val MIGRATION_27_28 = object : Migration(27, 28) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Añadir columnas nuevas con valores por defecto
+                db.execSQL("ALTER TABLE birth_records ADD COLUMN remote_id TEXT")
+                db.execSQL("ALTER TABLE birth_records ADD COLUMN updated_at_millis INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE birth_records ADD COLUMN pending_sync INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE birth_records ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0")
+
+                // Inicializar updated_at_millis con created_at para registros existentes
+                db.execSQL(
+                    """
+            UPDATE birth_records
+            SET updated_at_millis = created_at
+            WHERE updated_at_millis = 0
+            """.trimIndent()
+                )
+
+                // Crear índice para remote_id, como en la anotación @Entity
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_birth_records_remote_id " +
+                            "ON birth_records(remote_id)"
+                )
+            }
+        }
         @Volatile private var INSTANCE: AgroDatabase? = null
         fun get(context: Context): AgroDatabase =
             INSTANCE ?: synchronized(this) {
@@ -601,7 +625,7 @@ import com.example.softwareganadero.data.visitasData.ParticularRecord
                         .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
                             MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16,
                             MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20,MIGRATION_20_21,MIGRATION_21_22,
-                            MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26,MIGRATION_26_27,)
+                            MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26,MIGRATION_26_27, MIGRATION_27_28)
                         .addCallback(object : RoomDatabase.Callback() {
                             override fun onCreate(db: SupportSQLiteDatabase) {
                                 db.execSQL("""
